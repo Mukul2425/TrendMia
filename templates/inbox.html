@@ -1,0 +1,120 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Messages | Trendmia</title>
+  <link rel="stylesheet" type="text/css" href="{% static 'dist/css/chatStyle.css' %}">
+</head>
+<body class="chat-page">
+  <div class="navbar">
+    <div class="container">
+      <div class="logo">
+        <img src="{% static 'dist/images/logo.svg' %}" alt="Logo"> Trendmia
+      </div>
+      <div class="right-section">
+        <a href="{% url 'feed' %}">Feed</a>
+        <a href="{% url 'profile' %}">Profile</a>
+        <a href="{% url 'logout' %}">Logout</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="chat-container" style="max-width:900px;">
+    <div class="chat-header">
+      <div class="user-details">
+        <h3>Your Conversations</h3>
+      </div>
+    </div>
+    <div class="chat-messages" style="background:#fff;">
+      <h3 style="margin:0 0 10px;">Following</h3>
+      {% for c in conversations_following %}
+        <div class="message received">
+          <div class="message-content">
+            <div class="message-header">
+              <span class="sender-name">{{ c.user.name }} (@{{ c.user.username }})</span>
+              <span class="message-time">{{ c.time|date:"M d, H:i" }}</span>
+            </div>
+            <div class="message-text">{{ c.last_message.message|truncatechars:80 }}</div>
+            <div style="margin-top:8px;">
+              <a href="{% url 'chat' c.user.username %}" class="view-profile-btn">Open chat</a>
+            </div>
+          </div>
+        </div>
+      {% empty %}
+        <div class="empty-state"><p>No conversations with people you follow yet.</p></div>
+      {% endfor %}
+
+      <h3 style="margin:20px 0 10px;">Others</h3>
+      {% for c in conversations_others %}
+        <div class="message received">
+          <div class="message-content">
+            <div class="message-header">
+              <span class="sender-name">{{ c.user.name }} (@{{ c.user.username }})</span>
+              <span class="message-time">{{ c.time|date:"M d, H:i" }}</span>
+            </div>
+            <div class="message-text">{{ c.last_message.message|truncatechars:80 }}</div>
+            <div style="margin-top:8px;">
+              <a href="{% url 'chat' c.user.username %}" class="view-profile-btn">Open chat</a>
+            </div>
+          </div>
+        </div>
+      {% empty %}
+        <div class="empty-state"><p>No other conversations.</p></div>
+      {% endfor %}
+
+      <h3 style="margin:20px 0 10px;">Collaboration Requests</h3>
+      {% for req in collab_requests %}
+        <div class="message received">
+          <div class="message-content">
+            <div class="message-header">
+              <span class="sender-name">From {{ req.requester.name }} (@{{ req.requester.username }})</span>
+              <span class="message-time">{{ req.created_at|date:"M d, H:i" }}</span>
+            </div>
+            <div class="message-text">Project: {{ req.project.project_name }}{% if req.role %} • Role: {{ req.role }}{% endif %}</div>
+            <div style="margin-top:8px; display:flex; gap:8px;">
+              <form class="collab-respond" method="post" action="{% url 'respond_collaboration' req.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="accept">
+                <button class="view-profile-btn" style="background:#28a745;">Accept</button>
+              </form>
+              <form class="collab-respond" method="post" action="{% url 'respond_collaboration' req.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="decline">
+                <button class="view-profile-btn" style="background:#dc3545;">Decline</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      {% empty %}
+        <div class="empty-state"><p>No pending collaboration requests.</p></div>
+      {% endfor %}
+    </div>
+  </div>
+  <script>
+  document.addEventListener('DOMContentLoaded', function(){
+    document.querySelectorAll('form.collab-respond').forEach(function(form){
+      form.addEventListener('submit', function(e){
+        e.preventDefault();
+        const formData = new FormData(form);
+        const targetUrl = form.getAttribute('action');
+        fetch(targetUrl, {
+          method: 'POST',
+          headers: { 'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value, 'X-Requested-With': 'XMLHttpRequest' },
+          body: new URLSearchParams(formData)
+        }).then(r => r.json()).then(data => {
+          if(data.success){
+            // Reload to refresh requests and also make accepted collab visible from profile if navigated
+            location.reload();
+          } else {
+            alert('Error: ' + (data.error || 'Failed'));
+          }
+        }).catch(() => alert('Network error'));
+      });
+    });
+  });
+  </script>
+</body>
+</html>
+

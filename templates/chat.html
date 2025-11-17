@@ -1,12 +1,124 @@
-<!-- chat.html -->
-<h1>Chat with {{ recipient.username }}</h1>
-<div id="chat-messages">
-    {% for message in messages %}
-        <p>{{ message.sender }}: {{ message.message }}</p>
-    {% endfor %}
-</div>
-<form method="post">
-    {% csrf_token %}
-    <input type="text" name="message">
-    <button type="submit">Send</button>
-</form>
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat with {{ recipient.name }} | Trendmia</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'dist/css/chatStyle.css' %}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body class="chat-page">
+    <!-- Navbar -->
+    <div class="navbar">
+        <div class="container">
+            <div class="logo">
+                <img src="{% static 'dist/images/logo.svg' %}" alt="Logo">
+                Trendmia
+            </div>
+            <div class="right-section">
+                <a href="{% url 'feed' %}"><i class="fas fa-home"></i> Feed</a>
+                <a href="{% url 'profile' %}"><i class="fas fa-user"></i> Profile</a>
+                <a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="chat-container">
+        <!-- Chat Header -->
+        <div class="chat-header">
+            <div class="user-info">
+                <div class="user-avatar">
+                    {% if recipient.avatar %}
+                        <img src="{{ recipient.avatar.url }}" alt="{{ recipient.name }}">
+                    {% else %}
+                        <img src="{% static 'dist/images/logo.svg' %}" alt="{{ recipient.name }}">
+                    {% endif %}
+                </div>
+                <div class="user-details">
+                    <h3>{{ recipient.name }}</h3>
+                    <p>@{{ recipient.username }}</p>
+                    {% if recipient.location %}
+                        <span class="user-location"><i class="fas fa-map-marker-alt"></i> {{ recipient.location }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="chat-actions">
+                <a href="{% url 'user_profile' recipient.username %}" class="view-profile-btn">
+                    <i class="fas fa-user"></i> View Profile
+                </a>
+            </div>
+        </div>
+
+        <!-- Chat Messages -->
+        <div class="chat-messages" id="chat-messages">
+            {% for message in messages %}
+            <div class="message {% if message.sender == request.user %}sent{% else %}received{% endif %}">
+                <div class="message-content">
+                    <div class="message-header">
+                        <span class="sender-name">{{ message.sender.name }}</span>
+                        <span class="message-time">{{ message.timestamp|date:"H:i" }}</span>
+                    </div>
+                    <div class="message-text">{{ message.message }}</div>
+                    {% if message.project %}
+                    <div class="project-reference">
+                        <i class="fas fa-folder"></i>
+                        <span>Project: {{ message.project.project_name }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-chat">
+                <i class="fas fa-comments"></i>
+                <h3>Start a conversation</h3>
+                <p>Send a message to {{ recipient.name }} to begin your conversation.</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Chat Input -->
+        <div class="chat-input">
+            <form method="post" id="message-form">
+                {% csrf_token %}
+                <div class="input-group">
+                    <input type="text" name="message" placeholder="Type your message..." required>
+                    <button type="submit" class="send-btn">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Auto-scroll to bottom of chat
+        function scrollToBottom() {
+            const chatMessages = document.getElementById('chat-messages');
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Scroll to bottom on page load
+        window.addEventListener('load', scrollToBottom);
+
+        // Auto-refresh messages every 5 seconds
+        setInterval(function() {
+            location.reload();
+        }, 5000);
+
+        // Handle form submission
+        document.getElementById('message-form').addEventListener('submit', function(e) {
+            const messageInput = this.querySelector('input[name="message"]');
+            if (messageInput.value.trim() === '') {
+                e.preventDefault();
+                return;
+            }
+        });
+
+        // Focus on message input
+        document.querySelector('input[name="message"]').focus();
+    </script>
+</body>
+</html>

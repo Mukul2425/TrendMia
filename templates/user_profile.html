@@ -6,13 +6,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Profile | Trendmia</title>
+    <title>{{ profile_user.name }} | Trendmia</title>
     <link rel="stylesheet" type="text/css" href="{% static 'dist/css/profileStyle.css' %}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 
-<body >
-            <!-- Navbar -->
+<body>
+    <!-- Navbar -->
     <div class="navbar">
         <div class="container">
             <div class="logo">
@@ -21,20 +21,20 @@
             </div>
             <div class="right-section">
                 <a href="{% url 'feed' %}"><i class="fas fa-home"></i> Feed</a>
+                <a href="{% url 'profile' %}"><i class="fas fa-user"></i> My Profile</a>
                 <a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a>
             </div>
         </div>
     </div>
 
-<div class="profile-page">
     <div class="container">
         <!-- Profile Header -->
         <div class="profile-header">
             <div class="profile-cover">
                 <div class="cover-image"></div>
                 <div class="profile-avatar">
-                    {% if user.avatar %}
-                        <img src="{{ user.avatar.url }}" alt="Profile Image">
+                    {% if profile_user.avatar %}
+                        <img src="{{ profile_user.avatar.url }}" alt="Profile Image">
                     {% else %}
                         <img src="{% static 'dist/images/logo.svg' %}" alt="Profile Image">
                     {% endif %}
@@ -42,22 +42,22 @@
             </div>
             
             <div class="profile-info">
-                <h1>{{ user.name }}</h1>
-                <p class="username">@{{ user.username }}</p>
-                {% if user.bio %}
-                    <p class="bio">{{ user.bio }}</p>
+                <h1>{{ profile_user.name }}</h1>
+                <p class="username">@{{ profile_user.username }}</p>
+                {% if profile_user.bio %}
+                    <p class="bio">{{ profile_user.bio }}</p>
                 {% endif %}
-                {% if user.location %}
-                    <p class="location"><i class="fas fa-map-marker-alt"></i> {{ user.location }}</p>
+                {% if profile_user.location %}
+                    <p class="location"><i class="fas fa-map-marker-alt"></i> {{ profile_user.location }}</p>
                 {% endif %}
-                {% if user.website %}
-                    <p class="website"><i class="fas fa-link"></i> <a href="{{ user.website }}" target="_blank">{{ user.website }}</a></p>
+                {% if profile_user.website %}
+                    <p class="website"><i class="fas fa-link"></i> <a href="{{ profile_user.website }}" target="_blank">{{ profile_user.website }}</a></p>
                 {% endif %}
-                {% if user.skills %}
+                {% if profile_user.skills %}
                     <div class="skills">
                         <h3>Skills</h3>
                         <div class="skills-tags">
-                            {% for skill in user.skills|split:"," %}
+                            {% for skill in profile_user.skills|split:"," %}
                                 <span class="skill-tag">{{ skill|strip }}</span>
                             {% endfor %}
                         </div>
@@ -80,20 +80,23 @@
                 </div>
             </div>
             
+            {% if not is_own_profile and user.is_authenticated %}
             <div class="profile-actions">
-                <a href="{% url 'feed' %}" class="edit-profile-btn">
-                    <i class="fas fa-plus"></i> Create Project
+                <button class="follow-btn" data-username="{{ profile_user.username }}" data-following="{% if is_following %}true{% else %}false{% endif %}">
+                    {% if is_following %}<i class="fas fa-user-minus"></i> Unfollow{% else %}<i class="fas fa-user-plus"></i> Follow{% endif %}
+                </button>
+                <a href="{% url 'chat' profile_user.username %}" class="chat-btn">
+                    <i class="fas fa-comment"></i> Message
                 </a>
             </div>
+            {% endif %}
         </div>
 
         <!-- Profile Navigation -->
         <div class="profile-nav">
-            <button class="nav-btn active" data-tab="projects">My Projects</button>
-            <button class="nav-btn" data-tab="collab-projects">Collaborated</button>
+            <button class="nav-btn active" data-tab="projects">Projects</button>
             <button class="nav-btn" data-tab="followers">Followers</button>
             <button class="nav-btn" data-tab="following">Following</button>
-            <button class="nav-btn" data-tab="collab-requests">Collab Requests</button>
         </div>
 
         <!-- Projects Tab -->
@@ -105,7 +108,6 @@
                         <h3>{{ post.project_name }}</h3>
                         <span class="project-status status-{{ post.status }}">{{ post.status|title }}</span>
                     </div>
-                    <p class="project-caption">{{ post.heading }}</p>
                     <p class="project-description">{{ post.project_description|truncatewords:20 }}</p>
                     {% if post.tags %}
                         <div class="project-tags">
@@ -120,59 +122,17 @@
                             <span class="project-location"><i class="fas fa-map-marker-alt"></i> {{ post.location }}</span>
                         {% endif %}
                     </div>
-                    <div class="project-actions">
-                        {% if post.status == "ongoing" %}
-                        <form action="{% url 'update_status' post.id %}" method="post" style="display: inline;">
-                            {% csrf_token %}
-                            <button type="submit" class="status-btn complete-btn">
-                                <i class="fas fa-check"></i> Mark Complete
-                            </button>
-                        </form>
-                        {% elif post.status == "completed" %}
-                        <form action="{% url 'update_status' post.id %}" method="post" style="display: inline;">
-                            {% csrf_token %}
-                            <button type="submit" class="status-btn ongoing-btn">
-                                <i class="fas fa-clock"></i> Mark Ongoing
-                            </button>
-                        </form>
-                        {% endif %}
-                    </div>
                 </div>
                 {% empty %}
                 <div class="empty-state">
                     <i class="fas fa-folder-open"></i>
                     <h3>No projects yet</h3>
-                    <p>You haven't created any projects yet. <a href="{% url 'feed' %}">Create your first project!</a></p>
+                    <p>{{ profile_user.name }} hasn't shared any projects yet.</p>
                 </div>
                 {% endfor %}
             </div>
         </div>
 
-        <!-- Collaborated Projects Tab -->
-        <div class="tab-content" id="collab-projects">
-            <div class="projects-grid">
-                {% for post in collaborated_projects %}
-                <div class="project-card">
-                    <div class="project-header">
-                        <h3>{{ post.project_name }}</h3>
-                        <span class="project-status status-{{ post.status }}">{{ post.status|title }}</span>
-                    </div>
-                    <p class="project-description">{{ post.project_description|truncatewords:20 }}</p>
-                    <div class="project-meta">
-                        <span class="project-date"><i class="fas fa-calendar"></i> {{ post.created_at|date:"M d, Y" }}</span>
-                        {% if post.location %}
-                            <span class="project-location"><i class="fas fa-map-marker-alt"></i> {{ post.location }}</span>
-                        {% endif %}
-                    </div>
-                </div>
-                {% empty %}
-                <div class="empty-state">
-                    <i class="fas fa-handshake"></i>
-                    <h3>No collaborations yet</h3>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
         <!-- Followers Tab -->
         <div class="tab-content" id="followers">
             <div class="users-list">
@@ -200,7 +160,7 @@
                 <div class="empty-state">
                     <i class="fas fa-users"></i>
                     <h3>No followers yet</h3>
-                    <p>You don't have any followers yet. Share your projects to get noticed!</p>
+                    <p>{{ profile_user.name }} doesn't have any followers yet.</p>
                 </div>
                 {% endfor %}
             </div>
@@ -233,51 +193,11 @@
                 <div class="empty-state">
                     <i class="fas fa-user-plus"></i>
                     <h3>Not following anyone</h3>
-                    <p>You're not following anyone yet. <a href="{% url 'feed' %}">Discover interesting people!</a></p>
+                    <p>{{ profile_user.name }} isn't following anyone yet.</p>
                 </div>
                 {% endfor %}
             </div>
         </div>
-
-        {% if user.is_authenticated %}
-        <!-- Collaboration Requests Tab -->
-        <div class="tab-content" id="collab-requests">
-            <div class="users-list">
-                {% with requests=user.received_collab_requests.all %}
-                {% for req in requests %}
-                <div class="user-card">
-                    <div class="user-info">
-                        <h4>From: {{ req.requester.name }} (@{{ req.requester.username }})</h4>
-                        <p>Project: {{ req.project.project_name }}</p>
-                        {% if req.role %}<p>Proposed Role: {{ req.role }}</p>{% endif %}
-                        <p>Status: {{ req.status|title }}</p>
-                    </div>
-                    {% if req.status == 'pending' %}
-                    <div class="user-actions">
-                        <form method="post" action="{% url 'respond_collaboration' req.id %}" style="display:inline;" onsubmit="return respondCollab(event, this);">
-                            {% csrf_token %}
-                            <input type="hidden" name="action" value="accept">
-                            <button class="view-profile-btn" style="background:#28a745;">Accept</button>
-                        </form>
-                        <form method="post" action="{% url 'respond_collaboration' req.id %}" style="display:inline;" onsubmit="return respondCollab(event, this);">
-                            {% csrf_token %}
-                            <input type="hidden" name="action" value="decline">
-                            <button class="view-profile-btn" style="background:#dc3545;">Decline</button>
-                        </form>
-                    </div>
-                    {% endif %}
-                </div>
-                {% empty %}
-                <div class="empty-state">
-                    <i class="fas fa-handshake"></i>
-                    <h3>No collaboration requests</h3>
-                    <p>You have no pending collaboration requests.</p>
-                </div>
-                {% endfor %}
-                {% endwith %}
-            </div>
-        </div>
-        {% endif %}
     </div>
 
     <script>
@@ -294,16 +214,43 @@
             });
         });
 
-        function respondCollab(e, form) {
-            e.preventDefault();
-            const formData = new FormData(form);
-            fetch(form.action, { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' }, body: new URLSearchParams(formData) })
-            .then(r => r.json())
-            .then(data => { if (data.success) { location.reload(); } else { alert('Error: ' + data.error); } })
-            .catch(() => alert('Network error'));
-            return false;
-        }
+        // Follow/unfollow functionality
+        document.querySelectorAll('.follow-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const username = this.dataset.username;
+                const isFollowing = this.dataset.following === 'true';
+                
+                fetch('/follow/' + username + '/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'csrfmiddlewaretoken={{ csrf_token }}'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        this.innerHTML = data.action === 'followed' ? 
+                            '<i class="fas fa-user-minus"></i> Unfollow' : 
+                            '<i class="fas fa-user-plus"></i> Follow';
+                        this.dataset.following = data.action === 'followed' ? 'true' : 'false';
+                        
+                        // Update follower count
+                        const followerStat = document.querySelector('.stat:has(.stat-label:contains("Followers"))');
+                        if (followerStat) {
+                            followerStat.querySelector('.stat-number').textContent = data.followers_count;
+                        }
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred');
+                });
+            });
+        });
     </script>
-</div>
 </body>
 </html>
