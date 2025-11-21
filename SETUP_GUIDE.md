@@ -275,3 +275,7 @@ For a modern social media-like UI, consider:
 - Dark mode support
 - Mobile-first responsive design
 
+
+
+
+

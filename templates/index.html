@@ -1,142 +1,195 @@
-<!-- D:\Code Playground\demo django\myproject\templates\index.html -->
-<!-- index.html -->
+{% extends "base.html" %}
+{% block title %}Trendmia · Build the future{% endblock %}
 
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Trendmia</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dosis:wght@400;700&display=swap">
-  <link rel="stylesheet" type="text/css" href="{% static 'dist/css/indexStyle.css' %}">
-  <!-- <img src="{% static 'dist/images/magicpattern-blob-1708592793397.svg' %}" alt="Blob Image" class="blob-image"> -->
-</head>
-
-<body>
-  <div class="main">
-  <div class="navbar">
-    <div class="logo">
-      <img src="{% static '/dist/images/logo.svg' %}" alt="Logo">
-      Trendmia
-    </div>
-    <div class="nav-buttons">
-      <button id="home-button">Home</button>
-      <button id="signin-button">Sign-In</button>
-      <button id="signup-button">Sign-Up</button>
-    </div>
-  </div>
-  <div class="container">
-    <div class="sidebar1">
-      <div class="circular-wheel"></div> <!-- Circular wheel -->
-    </div>
-    <div class="container">
-      <div class="sidebar2">
-      </div>
-      <div class="sidebar3">
-      </div>
-      <!-- <div><img src="{% static '/dist/images/magicpattern-blob-1708592793397.svg' %}" alt="Blob Image"
-          class="blob-image">
-      </div> -->
-      <div class="content">
-        <div>
-          <h1 class="heading">Let's Collaborate-Create-Elevate beyond the Ordinary!</h1>
-          <ul>
-            <h3 class="intro">Explore Trendmia's Unique AI-powered Platform to Validated and Amplify your Project Ideas.
-            </h3>
-          </ul>
+{% block content %}
+<section class="hero-section text-center text-lg-start">
+    <div class="row align-items-center g-4">
+        <div class="col-lg-7">
+            <p class="text-uppercase text-muted fw-semibold mb-2">Builders · Researchers · Hackers</p>
+            <h1 class="display-5 fw-bold mb-3">
+                The collaborative operating system for ambitious projects.
+            </h1>
+            <p class="lead text-secondary mb-4 pe-lg-5">
+                Trendmia unites GitHub-style project posts, Notion-grade workspaces, LinkedIn-quality profiles, and
+                AI copilots into one social platform built entirely for people who ship ideas.
+            </p>
+            <div class="d-flex flex-wrap gap-3">
+                <a href="{% url 'signup' %}" class="btn btn-primary btn-lg">
+                    Start building
+                </a>
+                <a href="{% url 'feed' %}" class="btn btn-outline-light text-white border-0">
+                    Browse live projects
+                </a>
+            </div>
+            <div class="row g-3 mt-4">
+                <div class="col-md-4">
+                    <div class="stat-pill">
+                        <div>
+                            <span class="label">Active builders</span>
+                            <span class="value">8,400+</span>
+                        </div>
+                        <i class="fa-solid fa-circle-user text-primary"></i>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-pill">
+                        <div>
+                            <span class="label">Projects shipped</span>
+                            <span class="value">3,100+</span>
+                        </div>
+                        <i class="fa-solid fa-cubes-stacked text-success"></i>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-pill">
+                        <div>
+                            <span class="label">Collaborations</span>
+                            <span class="value">15k+</span>
+                        </div>
+                        <i class="fa-solid fa-handshake text-warning"></i>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div>
-          <div>
-            <h1 class="research">AI-Driven Idea Validation:</h1>
-            <div class="feature-description">
-              <p>Leverage Trendmia's powerful AI algorithms to validate the uniqueness and viability of your ideas,
-                ensuring you stand out in the crowd.</p>
-            </div>
-          </div>
-          <div>
-            <h1 class="trending">Real-time Trend Analysis:</h1>
-            <div class="feature-description">
-              <p>Stay ahead of the curve with Trendmia's real-time trend analysis, enabling you to identify emerging
-                project fields and seize new opportunities.</p>
-              <div class="search-bar">
-                <div class="trending-text">See What's Trending  → </div>
-                <button id="check-now-button">Check Now</button>
-              </div>
-            </div>
-          </div>  
-          <div>
-            <h1 class="project">Collaborative Project Spaces:</h1>
-            <div class="feature-description">
-              <p>Engage in seamless collaboration within dedicated project spaces, where you can connect with
-                like-minded individuals, share insights, and drive collective innovation.</p>
-            </div>
-          </div>
-          <div>
-            <h1 class="research">Research &amp; Innovation (upcoming):</h1>
-            <div class="feature-description">
-              <p>Unite with peers in dedicated spaces to brainstorm, share insights, and drive transformative research
-                forward.</p>
-            </div>
-          </div>
-        </div>
-        <div class="content">
-          <div class="flashcard-wrapper">
-            <div class="flashcard">
-              <!-- Sign-Up Section -->
-              <div id="signup-section" class="flashcard-content">
-                <h1>Sign-Up</h1>
+        <div class="col-lg-5">
+            <div class="form-panel">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <p class="text-uppercase text-muted small mb-1">Get started free</p>
+                        <h4 class="fw-bold mb-0">Create your builder profile</h4>
+                    </div>
+                    <span class="badge bg-light text-dark">
+                        <i class="fa-solid fa-lock"></i> secure
+                    </span>
+                </div>
                 <form method="POST" action="{% url 'signup' %}">
-                  {% csrf_token %}
-                  {{ form.as_p }}
-                  <button type="submit">Submit</button>
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label text-muted small">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}
+                                <small class="text-muted">{{ field.help_text }}</small>
+                            {% endif %}
+                            {% for error in field.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary w-100">
+                        Join Trendmia
+                    </button>
                 </form>
-                <p>Already have an account? <a href="{% url 'login' %}">Log In</a></p>
-              </div>
+                <p class="text-center text-muted small mt-3 mb-0">
+                    Already building here? <a href="{% url 'login' %}">Log in</a>
+                </p>
             </div>
-          </div>
-
         </div>
-      </div>
-      <div class="wave-footer">
-      </div>
-
-      <!-- JavaScript code -->
-      <script>
-        document.addEventListener('DOMContentLoaded', function () {
-          var homeButton = document.getElementById('home-button');
-
-          homeButton.addEventListener('click', function () {
-            window.location.href = "/";
-          });
-
-          var signupButton = document.getElementById('signup-button');
-
-          signupButton.addEventListener('click', function () {
-            var signupSection = document.getElementById('signup-section');
-            signupSection.scrollIntoView({ behavior: 'smooth' });
-          });
-
-          var signinButton = document.getElementById('signin-button');
-
-          signinButton.addEventListener('click', function () {
-            window.location.href = "{% url 'login' %}";
-          });
-
-          var trendingText = document.querySelector('.trending-text');
-          trendingText.addEventListener('click', function () {
-            window.location.href = "/trending"; // Redirect to trending page
-          });
-
-          var checkNowButton = document.getElementById('check-now-button');
-          checkNowButton.addEventListener('click', function () {
-            window.location.href = "/trending"; // Redirect to trending page
-          });
-        });
-      </script>
-
     </div>
-  </body>
+</section>
 
-</html>
+<section class="mt-5">
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="project-card h-100">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <span class="badge-soft"><i class="fa-solid fa-rocket"></i> Launch</span>
+                    <span class="text-muted small">Step 01</span>
+                </div>
+                <h4>Post project stories</h4>
+                <p class="text-secondary">
+                    Publish ideas with rich media, domain tags, required skills, and stage indicators directly to the global feed.
+                </p>
+                <ul class="list-unstyled text-muted small mb-0">
+                    <li><i class="fa-solid fa-circle-check text-success me-2"></i> AI project starter kit</li>
+                    <li><i class="fa-solid fa-circle-check text-success me-2"></i> Location & domain feeds</li>
+                    <li><i class="fa-solid fa-circle-check text-success me-2"></i> Visibility controls</li>
+                </ul>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="project-card h-100">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <span class="badge-soft"><i class="fa-solid fa-people-group"></i> Collaborate</span>
+                    <span class="text-muted small">Step 02</span>
+                </div>
+                <h4>Find your dream team</h4>
+                <p class="text-secondary">
+                    Collaborator requests include skills, intent, and preferred roles. Accepting auto-spins up private workspaces.
+                </p>
+                <ul class="list-unstyled text-muted small mb-0">
+                    <li><i class="fa-solid fa-circle-check text-success me-2"></i> AI collaborator matching</li>
+                    <li><i class="fa-solid fa-circle-check text-success me-2"></i> Role-aware invites</li>
+                    <li><i class="fa-solid fa-circle-check text-success me-2"></i> Reputation & badges</li>
+                </ul>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="project-card h-100">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <span class="badge-soft"><i class="fa-solid fa-layer-group"></i> Build</span>
+                    <span class="text-muted small">Step 03</span>
+                </div>
+                <h4>Work like a pro team</h4>
+                <p class="text-secondary">
+                    Each workspace includes Kanban boards, notes, chat, file vaults, and milestone timelines powered by AI nudges.
+                </p>
+                <ul class="list-unstyled text-muted small mb-0">
+                    <li><i class="fa-solid fa-circle-check text-success me-2"></i> Task automation</li>
+                    <li><i class="fa-solid fa-circle-check text-success me-2"></i> Real-time chat & updates</li>
+                    <li><i class="fa-solid fa-circle-check text-success me-2"></i> Meeting notes & files</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="mt-5">
+    <div class="project-card">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h3 class="fw-bold mb-2">Feeds tuned for exactly what you care about.</h3>
+                <p class="text-secondary mb-4">
+                    Filter by collaborators, domains, college networks, project stages, or your local ecosystem. Trendmia makes signal your default feed.
+                </p>
+                <div class="d-flex flex-wrap gap-2 mb-4">
+                    <span class="feed-filter-pill active"><i class="fa-solid fa-wifi me-2"></i> Global feed</span>
+                    <span class="feed-filter-pill"><i class="fa-solid fa-user-group me-2"></i> Collaborators</span>
+                    <span class="feed-filter-pill"><i class="fa-solid fa-flask me-2"></i> Research</span>
+                    <span class="feed-filter-pill"><i class="fa-solid fa-map-pin me-2"></i> Near me</span>
+                </div>
+                <a href="{% url 'enhanced_feed' %}" class="btn btn-primary">
+                    Explore the smart feed
+                </a>
+            </div>
+            <div class="col-lg-6">
+                <div class="workspace-card">
+                    <h6 class="text-uppercase text-muted small mb-3">Live signal</h6>
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div>
+                            <p class="mb-0 text-muted">Trending domain</p>
+                            <h5 class="mb-0">Autonomous Systems</h5>
+                        </div>
+                        <span class="badge bg-success-subtle text-success">+38% week over week</span>
+                    </div>
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <h6 class="mb-1">Robotics Vision Stack</h6>
+                            <p class="text-muted small mb-0">Looking for C++ mentors · Bengaluru</p>
+                        </div>
+                        <div class="timeline-item">
+                            <h6 class="mb-1">BioSignal Diagnostics</h6>
+                            <p class="text-muted small mb-0">Clinical AI · Remote · Hiring 3</p>
+                        </div>
+                        <div class="timeline-item mb-0">
+                            <h6 class="mb-1">Campus Satellite Lab</h6>
+                            <p class="text-muted small mb-0">IIT Delhi community drop · 12 spots</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

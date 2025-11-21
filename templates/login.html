@@ -1,59 +1,45 @@
-<!-- D:\Code Playground\demo django\myproject\templates\login.html -->
-<!-- login.html -->
+{% extends "base.html" %}
+{% block title %}Login · Trendmia{% endblock %}
 
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login - Trendmia</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dosis:wght@400;700&display=swap">
-  <link rel="stylesheet" type="text/css" href="{% static 'dist/css/indexStyle.css' %}">
-  <link rel="stylesheet" type="text/css" href="{% static 'dist/css/loginStyle.css' %}"> <!-- Include the custom CSS file -->
-</head>
-
-<body>
-  <div class="container">
-    <div class="content">
-      <button id="home-button" class="home-button">Home</button> <!-- Add home button -->
-      <div class="flashcard login-flashcard">
-        <!-- Login Section -->
-        <div id="login-section" class="flashcard-content">
-          <div class="logo">
-            <img src="{% static '/dist/images/logo.svg' %}" alt="Logo">
-            Trendmia
-          </div>
-          <h1>Sign-In</h1>
-          <form method="POST" action="{% url 'login' %}">
-            {% csrf_token %}
-            <div class="form-group">
-              <label for="id_username">Username or Email:</label>
-              {{ login_form.username }}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-5">
+        <div class="form-panel">
+            <div class="text-center mb-4">
+                <span class="badge-soft"><i class="fa-solid fa-bolt"></i> Welcome back</span>
+                <h3 class="fw-bold mt-3 mb-1">Log back into your workspace</h3>
+                <p class="text-secondary mb-0">Continue collaborating with your teams.</p>
             </div>
-            <div class="form-group">
-              <label for="id_password">Password:</label>
-              {{ login_form.password }}
-            </div>
-            <button type="submit">Submit</button>
-          </form>
-          <p>New user? <a href="{% url 'signup' %}">Sign up here</a></p>
+            <form method="POST" action="{% url 'login' %}">
+                {% csrf_token %}
+                {% if error_message %}
+                    <div class="alert alert-danger">{{ error_message }}</div>
+                {% endif %}
+                <div class="mb-3">
+                    <label class="form-label text-muted small">Email or username</label>
+                    {{ login_form.username }}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted small">Password</label>
+                    {{ login_form.password }}
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="" id="rememberMe">
+                        <label class="form-check-label text-muted small" for="rememberMe">
+                            Keep me signed in
+                        </label>
+                    </div>
+                    <a href="#" class="text-muted small">Forgot password?</a>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">
+                    Continue
+                </button>
+            </form>
+            <p class="text-center text-muted small mt-4 mb-0">
+                New to Trendmia? <a href="{% url 'signup' %}">Create an account</a>
+            </p>
         </div>
-      </div>
     </div>
-  </div>
-
-  <!-- JavaScript code -->
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      var homeButton = document.getElementById('home-button');
-
-      homeButton.addEventListener('click', function () {
-        window.location.href = "/"; // Redirect to the index page
-      });
-    });
-  </script>
-</body>
-
-</html>
+</div>
+{% endblock %}

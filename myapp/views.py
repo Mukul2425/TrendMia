@@ -185,6 +185,10 @@ def profile_view(request):
     follower_users = [follow.follower for follow in followers]
     following_users = [follow.following for follow in following]
     
+    collab_requests = CollaborationRequest.objects.filter(
+        project__user=user
+    ).select_related('project', 'requester').order_by('-created_at')
+    
     context = {
         'user': user,
         'posts': posts,
@@ -193,6 +197,7 @@ def profile_view(request):
         'following': following_users,
         'followers_count': len(follower_users),
         'following_count': len(following_users),
+        'collab_requests': collab_requests,
     }
     
     return render(request, 'profile.html', context)
@@ -245,69 +250,62 @@ def update_status_view(request, post_id):
     return redirect('profile')  
 
 def feed(request):
-    print(f"Feed view - User authenticated: {request.user.is_authenticated}")
-    print(f"Feed view - User: {request.user}")
+    """Primary social feed with lightweight filters and ordering."""
+    projects_qs = (
+        Project.objects.select_related('user', 'domain')
+        .prefetch_related('tags', 'comments__user')
+        .order_by('-created_at')
+    )
     
-    # Get all projects
-    all_posts = Project.objects.all().order_by('-created_at')
+    city = request.GET.get('city', '').strip()
+    tag_name = request.GET.get('tags', '').strip()
+    status = request.GET.get('status', '').strip()
     
-    # If user is authenticated, prioritize followed users' projects and add AI recommendations
+    if city:
+        projects_qs = projects_qs.filter(
+            Q(location__icontains=city) |
+            Q(city__icontains=city) |
+            Q(state__icontains=city) |
+            Q(country__icontains=city)
+        )
+    if tag_name:
+        projects_qs = projects_qs.filter(tags__name__icontains=tag_name)
+    if status:
+        projects_qs = projects_qs.filter(status=status)
+    
+    projects_qs = projects_qs.distinct()
+    
     if request.user.is_authenticated:
-        followed_users = request.user.following.values_list('following', flat=True)
-        followed_posts = all_posts.filter(user_id__in=followed_users)
-        other_posts = all_posts.exclude(user_id__in=followed_users)
-        
-        # AI-powered recommendations based on user's interests
+        followed_ids = request.user.following.values_list('following_id', flat=True)
+        followed_posts = list(projects_qs.filter(user_id__in=followed_ids))
+        other_posts = list(projects_qs.exclude(user_id__in=followed_ids))
         recommended_posts = get_ai_recommendations(request.user, other_posts)
-        # De-duplicate while keeping order: followed -> recommended -> others
-        seen_ids = set()
+        
         ordered_posts = []
-        for qs in (followed_posts, recommended_posts, other_posts):
-            for p in qs:
-                pid = getattr(p, 'id', None)
-                if pid is None or pid in seen_ids:
+        seen_ids = set()
+        for bucket in (followed_posts, recommended_posts, other_posts):
+            for project in bucket:
+                if project.id in seen_ids:
                     continue
-                seen_ids.add(pid)
-                ordered_posts.append(p)
+                seen_ids.add(project.id)
+                ordered_posts.append(project)
         posts = ordered_posts
     else:
-        posts = all_posts
+        posts = list(projects_qs)
     
-    print(f"Total projects in database: {len(posts)}")
-
-    # Handle filter form submission
-    if request.method == 'GET':
-        city = request.GET.get('city')
-        tags = request.GET.get('tags')
-        status = request.GET.get('status')
-
-        # Filter posts based on form inputs
-        if city:
-            posts = [p for p in posts if p.location and city.lower() in p.location.lower()]
-        if tags:
-            posts = [p for p in posts if p.tags and tags.lower() in p.tags.lower()]
-        if status:
-            posts = [p for p in posts if p.status == status]
-            
-        # Retrieve all tags from the database
-        tags = Tag.objects.all()
-        
-        # Add follow status for each post if user is authenticated
-        if request.user.is_authenticated:
-            for post in posts:
-                post.is_following = Follow.objects.filter(
-                    follower=request.user, 
-                    following=post.user
-                ).exists()
-        else:
-            for post in posts:
-                post.is_following = False
-                
-        # Pass the projects and tags to the template context
-        return render(request, 'feed.html', {'posts': posts, 'tags': tags})
+    if request.user.is_authenticated:
+        following_set = set(request.user.following.values_list('following_id', flat=True))
+        for project in posts:
+            project.is_following = project.user_id in following_set
     else:
-        # If the request method is not GET, handle it accordingly (e.g., return an error response)
-        return HttpResponse("Invalid request method")
+        for project in posts:
+            project.is_following = False
+    
+    tags = Tag.objects.all()
+    return render(request, 'feed.html', {
+        'posts': posts,
+        'tags': tags,
+    })
 
 def get_ai_recommendations(user, posts):
     """Simple AI recommendation system based on user's project tags and interests"""
@@ -315,11 +313,10 @@ def get_ai_recommendations(user, posts):
         return []
     
     # Get user's project tags
-    user_projects = Project.objects.filter(user=user)
+    user_projects = Project.objects.filter(user=user).prefetch_related('tags')
     user_tags = []
     for project in user_projects:
-        if project.tags:
-            user_tags.extend([tag.strip().lower() for tag in project.tags.split(',')])
+        user_tags.extend([tag.name.lower() for tag in project.tags.all()])
     
     # Count tag frequency
     from collections import Counter
@@ -329,10 +326,7 @@ def get_ai_recommendations(user, posts):
     # Score posts based on tag similarity
     scored_posts = []
     for post in posts:
-        if not post.tags:
-            continue
-            
-        post_tags = [tag.strip().lower() for tag in post.tags.split(',')]
+        post_tags = [tag.name.lower() for tag in post.tags.all()]
         score = 0
         
         # Calculate similarity score

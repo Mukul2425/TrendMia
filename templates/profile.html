@@ -1,309 +1,266 @@
-{% load static %}
-{% load custom_filters %}
+{% extends "base.html" %}
+{% block title %}{{ user.name }} · Trendmia Profile{% endblock %}
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Profile | Trendmia</title>
-    <link rel="stylesheet" type="text/css" href="{% static 'dist/css/profileStyle.css' %}">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-</head>
-
-<body >
-            <!-- Navbar -->
-    <div class="navbar">
-        <div class="container">
-            <div class="logo">
-                <img src="{% static 'dist/images/logo.svg' %}" alt="Logo">
-                Trendmia
+{% block content %}
+<div class="profile-summary mb-4">
+    <div class="profile-card">
+        <div class="d-flex align-items-center gap-3 mb-3">
+            <img src="{% if user.avatar %}{{ user.avatar.url }}{% else %}https://ui-avatars.com/api/?name={{ user.name }}&background=8b5cf6&color=fff{% endif %}" class="avatar-lg" alt="{{ user.name }}">
+            <div>
+                <h2 class="mb-1">{{ user.name }}</h2>
+                <p class="text-muted mb-2">@{{ user.username }}</p>
+                <div class="d-flex flex-wrap gap-2 text-muted small">
+                    {% if user.location %}<span><i class="fa-solid fa-location-dot me-1"></i>{{ user.location }}</span>{% endif %}
+                    {% if user.college %}<span><i class="fa-solid fa-building-columns me-1"></i>{{ user.college }}</span>{% endif %}
+                    {% if user.website %}<span><i class="fa-solid fa-link me-1"></i><a href="{{ user.website }}" target="_blank">{{ user.website }}</a></span>{% endif %}
+                </div>
             </div>
-            <div class="right-section">
-                <a href="{% url 'feed' %}"><i class="fas fa-home"></i> Feed</a>
-                <a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </div>
+        {% if user.bio %}
+            <p class="text-secondary">{{ user.bio }}</p>
+        {% endif %}
+        <div class="workspace-stats mt-4">
+            <div class="workspace-stat">
+                <strong>{{ posts|length }}</strong>
+                <span>Projects launched</span>
+            </div>
+            <div class="workspace-stat">
+                <strong>{{ collaborated_projects|length }}</strong>
+                <span>Collaborations</span>
+            </div>
+            <div class="workspace-stat">
+                <strong>{{ followers_count }}</strong>
+                <span>Followers</span>
+            </div>
+            <div class="workspace-stat">
+                <strong>{{ user.contribution_streak }}</strong>
+                <span>Day streak</span>
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-3 mt-4">
+            <a href="{% url 'post_project' %}" class="btn btn-primary">
+                <i class="fa-solid fa-plus me-2"></i>New project
+            </a>
+            <a href="{% url 'feed' %}" class="btn btn-outline-secondary">
+                <i class="fa-solid fa-compass me-2"></i>Explore feed
+            </a>
+        </div>
+    </div>
+    <div class="workspace-card">
+        <h5 class="mb-3">Skill graph</h5>
+        <div class="skill-graph">
+            {% if user.skills %}
+                {% if user.skills.items %}
+                    {% for skill, level in user.skills.items %}
+                        <div>
+                            <div class="d-flex justify-content-between small mb-1">
+                                <span class="text-muted text-uppercase">{{ skill }}</span>
+                                <span class="text-muted">{{ level|title }}</span>
+                            </div>
+                            <div class="bar">
+                                <div class="bar-fill" style="width: {% if level == 'beginner' %}25{% elif level == 'intermediate' %}55{% elif level == 'advanced' %}80{% else %}100{% endif %}%;">
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    {% for skill in user.skills %}
+                        <span class="skill-chip">{{ skill }}</span>
+                    {% endfor %}
+                {% endif %}
+            {% else %}
+                <p class="text-muted small mb-0">Add skills to your profile to unlock better AI recommendations.</p>
+            {% endif %}
+        </div>
+        <hr class="my-4">
+        <h6 class="text-muted text-uppercase small">Network pulse</h6>
+        <div class="profile-metric mt-3">
+            <span><i class="fa-solid fa-user-group me-2"></i> Following</span>
+            <span>{{ following_count }}</span>
+        </div>
+        <div class="profile-metric mt-2">
+            <span><i class="fa-solid fa-award me-2"></i> Reputation</span>
+            <span>{{ user.reputation_points }}</span>
+        </div>
+    </div>
+</div>
+
+<ul class="nav nav-pills mb-4" id="profileTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#projects-tab" type="button">
+            <i class="fa-solid fa-diagram-project me-1"></i> Projects
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#collabs-tab" type="button">
+            <i class="fa-solid fa-handshake me-1"></i> Collaborations
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#network-tab" type="button">
+            <i class="fa-solid fa-users me-1"></i> Network
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#requests-tab" type="button">
+            <i class="fa-solid fa-inbox me-1"></i> Requests
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content">
+    <div class="tab-pane fade show active" id="projects-tab">
+        <div class="row g-4">
+            {% for post in posts %}
+                <div class="col-md-6">
+                    <div class="project-card h-100">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4>{{ post.title }}</h4>
+                                <p class="text-muted small mb-2">{{ post.created_at|date:"M d, Y" }}</p>
+                            </div>
+                            <span class="badge-soft">{{ post.get_stage_display }}</span>
+                        </div>
+                        <p class="text-secondary">{{ post.description|truncatechars:180 }}</p>
+                        <div class="project-meta">
+                            {% if post.domain %}<span><i class="fa-solid fa-layer-group me-1"></i>{{ post.domain.name }}</span>{% endif %}
+                            {% if post.location %}<span><i class="fa-solid fa-map-pin me-1"></i>{{ post.location }}</span>{% endif %}
+                        </div>
+                        {% if post.tags.all %}
+                            <div class="mb-3">
+                                {% for tag in post.tags.all %}
+                                    <span class="tag-chip">{{ tag.name }}</span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a class="btn btn-outline-secondary btn-sm" href="{% url 'project_detail' post.id %}">
+                                View workspace
+                            </a>
+                            <form action="{% url 'update_status' post.id %}" method="post">
+                                {% csrf_token %}
+                                {% if post.status == 'ongoing' %}
+                                    <button class="btn btn-success btn-sm" type="submit">
+                                        <i class="fa-solid fa-flag-checkered me-1"></i>Mark complete
+                                    </button>
+                                {% else %}
+                                    <button class="btn btn-outline-primary btn-sm" type="submit">
+                                        <i class="fa-solid fa-rotate-left me-1"></i>Reopen
+                                    </button>
+                                {% endif %}
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="col-12">
+                    <div class="empty-state">
+                        <i class="fa-solid fa-folder-open fs-1 mb-3 text-primary"></i>
+                        <h4>No projects yet</h4>
+                        <p class="text-muted">Share your first project to attract collaborators.</p>
+                        <a href="{% url 'post_project' %}" class="btn btn-primary mt-2">Create a project</a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="tab-pane fade" id="collabs-tab">
+        <div class="row g-4">
+            {% for project in collaborated_projects %}
+                <div class="col-md-6">
+                    <div class="project-card h-100">
+                        <div class="d-flex justify-content-between">
+                            <h4>{{ project.title }}</h4>
+                            <span class="badge-soft">{{ project.get_stage_display }}</span>
+                        </div>
+                        <p class="text-secondary">{{ project.description|truncatechars:160 }}</p>
+                        <p class="text-muted small mb-0">
+                            Led by <strong>{{ project.user.name }}</strong> · {{ project.created_at|date:"M d, Y" }}
+                        </p>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="col-12">
+                    <div class="empty-state">
+                        <i class="fa-solid fa-handshake-angle fs-1 mb-3 text-success"></i>
+                        <h4>No collaborations yet</h4>
+                        <p class="text-muted">Request to join projects from the feed to collaborate.</p>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="tab-pane fade" id="network-tab">
+        <div class="row g-4">
+            <div class="col-md-6">
+                <h5>Followers</h5>
+                {% for follower in followers %}
+                    <div class="profile-metric mt-3">
+                        <div>
+                            <strong>{{ follower.name }}</strong>
+                            <p class="text-muted small mb-0">@{{ follower.username }}</p>
+                        </div>
+                        <a href="{% url 'user_profile' follower.username %}" class="text-muted small">View</a>
+                    </div>
+                {% empty %}
+                    <p class="text-muted">No followers yet.</p>
+                {% endfor %}
+            </div>
+            <div class="col-md-6">
+                <h5>Following</h5>
+                {% for followee in following %}
+                    <div class="profile-metric mt-3">
+                        <div>
+                            <strong>{{ followee.name }}</strong>
+                            <p class="text-muted small mb-0">@{{ followee.username }}</p>
+                        </div>
+                        <a href="{% url 'user_profile' followee.username %}" class="text-muted small">View</a>
+                    </div>
+                {% empty %}
+                    <p class="text-muted">You're not following anyone yet.</p>
+                {% endfor %}
             </div>
         </div>
     </div>
-
-<div class="profile-page">
-    <div class="container">
-        <!-- Profile Header -->
-        <div class="profile-header">
-            <div class="profile-cover">
-                <div class="cover-image"></div>
-                <div class="profile-avatar">
-                    {% if user.avatar %}
-                        <img src="{{ user.avatar.url }}" alt="Profile Image">
-                    {% else %}
-                        <img src="{% static 'dist/images/logo.svg' %}" alt="Profile Image">
-                    {% endif %}
-                </div>
-            </div>
-            
-            <div class="profile-info">
-                <h1>{{ user.name }}</h1>
-                <p class="username">@{{ user.username }}</p>
-                {% if user.bio %}
-                    <p class="bio">{{ user.bio }}</p>
-                {% endif %}
-                {% if user.location %}
-                    <p class="location"><i class="fas fa-map-marker-alt"></i> {{ user.location }}</p>
-                {% endif %}
-                {% if user.website %}
-                    <p class="website"><i class="fas fa-link"></i> <a href="{{ user.website }}" target="_blank">{{ user.website }}</a></p>
-                {% endif %}
-                {% if user.skills %}
-                    <div class="skills">
-                        <h3>Skills</h3>
-                        <div class="skills-tags">
-                            {% for skill in user.skills|split:"," %}
-                                <span class="skill-tag">{{ skill|strip }}</span>
-                            {% endfor %}
+    <div class="tab-pane fade" id="requests-tab">
+        {% if collab_requests %}
+            {% for req in collab_requests %}
+                <div class="collab-card mb-3">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <strong>{{ req.requester.name }}</strong>
+                            <p class="text-muted small mb-1">Wants to join <a href="{% url 'project_detail' req.project.id %}">{{ req.project.title }}</a></p>
+                            <p class="mb-0 text-secondary small">{{ req.message }}</p>
+                            <div class="mt-2">
+                                <span class="badge-soft">{{ req.role|title }}</span>
+                                {% for skill in req.skills %}
+                                    <span class="skill-chip">{{ skill }}</span>
+                                {% endfor %}
+                            </div>
                         </div>
-                    </div>
-                {% endif %}
-            </div>
-            
-            <div class="profile-stats">
-                <div class="stat">
-                    <span class="stat-number">{{ posts.count }}</span>
-                    <span class="stat-label">Projects</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-number">{{ followers_count }}</span>
-                    <span class="stat-label">Followers</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-number">{{ following_count }}</span>
-                    <span class="stat-label">Following</span>
-                </div>
-            </div>
-            
-            <div class="profile-actions">
-                <a href="{% url 'feed' %}" class="edit-profile-btn">
-                    <i class="fas fa-plus"></i> Create Project
-                </a>
-            </div>
-        </div>
-
-        <!-- Profile Navigation -->
-        <div class="profile-nav">
-            <button class="nav-btn active" data-tab="projects">My Projects</button>
-            <button class="nav-btn" data-tab="collab-projects">Collaborated</button>
-            <button class="nav-btn" data-tab="followers">Followers</button>
-            <button class="nav-btn" data-tab="following">Following</button>
-            <button class="nav-btn" data-tab="collab-requests">Collab Requests</button>
-        </div>
-
-        <!-- Projects Tab -->
-        <div class="tab-content active" id="projects">
-            <div class="projects-grid">
-                {% for post in posts %}
-                <div class="project-card">
-                    <div class="project-header">
-                        <h3>{{ post.project_name }}</h3>
-                        <span class="project-status status-{{ post.status }}">{{ post.status|title }}</span>
-                    </div>
-                    <p class="project-caption">{{ post.heading }}</p>
-                    <p class="project-description">{{ post.project_description|truncatewords:20 }}</p>
-                    {% if post.tags %}
-                        <div class="project-tags">
-                            {% for tag in post.tags|split:"," %}
-                                <span class="tag">{{ tag|strip }}</span>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                    <div class="project-meta">
-                        <span class="project-date"><i class="fas fa-calendar"></i> {{ post.created_at|date:"M d, Y" }}</span>
-                        {% if post.location %}
-                            <span class="project-location"><i class="fas fa-map-marker-alt"></i> {{ post.location }}</span>
-                        {% endif %}
-                    </div>
-                    <div class="project-actions">
-                        {% if post.status == "ongoing" %}
-                        <form action="{% url 'update_status' post.id %}" method="post" style="display: inline;">
-                            {% csrf_token %}
-                            <button type="submit" class="status-btn complete-btn">
-                                <i class="fas fa-check"></i> Mark Complete
-                            </button>
-                        </form>
-                        {% elif post.status == "completed" %}
-                        <form action="{% url 'update_status' post.id %}" method="post" style="display: inline;">
-                            {% csrf_token %}
-                            <button type="submit" class="status-btn ongoing-btn">
-                                <i class="fas fa-clock"></i> Mark Ongoing
-                            </button>
-                        </form>
-                        {% endif %}
-                    </div>
-                </div>
-                {% empty %}
-                <div class="empty-state">
-                    <i class="fas fa-folder-open"></i>
-                    <h3>No projects yet</h3>
-                    <p>You haven't created any projects yet. <a href="{% url 'feed' %}">Create your first project!</a></p>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-
-        <!-- Collaborated Projects Tab -->
-        <div class="tab-content" id="collab-projects">
-            <div class="projects-grid">
-                {% for post in collaborated_projects %}
-                <div class="project-card">
-                    <div class="project-header">
-                        <h3>{{ post.project_name }}</h3>
-                        <span class="project-status status-{{ post.status }}">{{ post.status|title }}</span>
-                    </div>
-                    <p class="project-description">{{ post.project_description|truncatewords:20 }}</p>
-                    <div class="project-meta">
-                        <span class="project-date"><i class="fas fa-calendar"></i> {{ post.created_at|date:"M d, Y" }}</span>
-                        {% if post.location %}
-                            <span class="project-location"><i class="fas fa-map-marker-alt"></i> {{ post.location }}</span>
-                        {% endif %}
-                    </div>
-                </div>
-                {% empty %}
-                <div class="empty-state">
-                    <i class="fas fa-handshake"></i>
-                    <h3>No collaborations yet</h3>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-        <!-- Followers Tab -->
-        <div class="tab-content" id="followers">
-            <div class="users-list">
-                {% for follower in followers %}
-                <div class="user-card">
-                    <div class="user-avatar">
-                        {% if follower.avatar %}
-                            <img src="{{ follower.avatar.url }}" alt="{{ follower.name }}">
+                        {% if req.status == 'pending' %}
+                            <div class="d-flex flex-column gap-2">
+                                <form method="post" action="{% url 'respond_collaboration_new' req.id %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="accept">
+                                    <button class="btn btn-success btn-sm" type="submit">Accept</button>
+                                </form>
+                                <form method="post" action="{% url 'respond_collaboration_new' req.id %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="decline">
+                                    <button class="btn btn-outline-danger btn-sm" type="submit">Decline</button>
+                                </form>
+                            </div>
                         {% else %}
-                            <img src="{% static 'dist/images/logo.svg' %}" alt="{{ follower.name }}">
+                            <span class="badge bg-light text-dark">{{ req.status|title }}</span>
                         {% endif %}
                     </div>
-                    <div class="user-info">
-                        <h4>{{ follower.name }}</h4>
-                        <p>@{{ follower.username }}</p>
-                        {% if follower.bio %}
-                            <p class="user-bio">{{ follower.bio|truncatewords:10 }}</p>
-                        {% endif %}
-                    </div>
-                    <div class="user-actions">
-                        <a href="{% url 'user_profile' follower.username %}" class="view-profile-btn">View Profile</a>
-                    </div>
                 </div>
-                {% empty %}
-                <div class="empty-state">
-                    <i class="fas fa-users"></i>
-                    <h3>No followers yet</h3>
-                    <p>You don't have any followers yet. Share your projects to get noticed!</p>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-
-        <!-- Following Tab -->
-        <div class="tab-content" id="following">
-            <div class="users-list">
-                {% for following_user in following %}
-                <div class="user-card">
-                    <div class="user-avatar">
-                        {% if following_user.avatar %}
-                            <img src="{{ following_user.avatar.url }}" alt="{{ following_user.name }}">
-                        {% else %}
-                            <img src="{% static 'dist/images/logo.svg' %}" alt="{{ following_user.name }}">
-                        {% endif %}
-                    </div>
-                    <div class="user-info">
-                        <h4>{{ following_user.name }}</h4>
-                        <p>@{{ following_user.username }}</p>
-                        {% if following_user.bio %}
-                            <p class="user-bio">{{ following_user.bio|truncatewords:10 }}</p>
-                        {% endif %}
-                    </div>
-                    <div class="user-actions">
-                        <a href="{% url 'user_profile' following_user.username %}" class="view-profile-btn">View Profile</a>
-                    </div>
-                </div>
-                {% empty %}
-                <div class="empty-state">
-                    <i class="fas fa-user-plus"></i>
-                    <h3>Not following anyone</h3>
-                    <p>You're not following anyone yet. <a href="{% url 'feed' %}">Discover interesting people!</a></p>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-
-        {% if user.is_authenticated %}
-        <!-- Collaboration Requests Tab -->
-        <div class="tab-content" id="collab-requests">
-            <div class="users-list">
-                {% with requests=user.received_collab_requests.all %}
-                {% for req in requests %}
-                <div class="user-card">
-                    <div class="user-info">
-                        <h4>From: {{ req.requester.name }} (@{{ req.requester.username }})</h4>
-                        <p>Project: {{ req.project.project_name }}</p>
-                        {% if req.role %}<p>Proposed Role: {{ req.role }}</p>{% endif %}
-                        <p>Status: {{ req.status|title }}</p>
-                    </div>
-                    {% if req.status == 'pending' %}
-                    <div class="user-actions">
-                        <form method="post" action="{% url 'respond_collaboration' req.id %}" style="display:inline;" onsubmit="return respondCollab(event, this);">
-                            {% csrf_token %}
-                            <input type="hidden" name="action" value="accept">
-                            <button class="view-profile-btn" style="background:#28a745;">Accept</button>
-                        </form>
-                        <form method="post" action="{% url 'respond_collaboration' req.id %}" style="display:inline;" onsubmit="return respondCollab(event, this);">
-                            {% csrf_token %}
-                            <input type="hidden" name="action" value="decline">
-                            <button class="view-profile-btn" style="background:#dc3545;">Decline</button>
-                        </form>
-                    </div>
-                    {% endif %}
-                </div>
-                {% empty %}
-                <div class="empty-state">
-                    <i class="fas fa-handshake"></i>
-                    <h3>No collaboration requests</h3>
-                    <p>You have no pending collaboration requests.</p>
-                </div>
-                {% endfor %}
-                {% endwith %}
-            </div>
-        </div>
+            {% endfor %}
+        {% else %}
+            <p class="text-muted">No pending collaboration requests right now.</p>
         {% endif %}
     </div>
-
-    <script>
-        // Tab switching
-        document.querySelectorAll('.nav-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                // Remove active class from all buttons and content
-                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                
-                // Add active class to clicked button and corresponding content
-                btn.classList.add('active');
-                document.getElementById(btn.dataset.tab).classList.add('active');
-            });
-        });
-
-        function respondCollab(e, form) {
-            e.preventDefault();
-            const formData = new FormData(form);
-            fetch(form.action, { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' }, body: new URLSearchParams(formData) })
-            .then(r => r.json())
-            .then(data => { if (data.success) { location.reload(); } else { alert('Error: ' + data.error); } })
-            .catch(() => alert('Network error'));
-            return false;
-        }
-    </script>
 </div>
-</body>
-</html>
+{% endblock %}
+
