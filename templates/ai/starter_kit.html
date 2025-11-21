@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}AI Project Starter Kit{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="form-panel">
+            <h5 class="mb-3">Describe your idea</h5>
+            <form id="starter-kit-form">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label text-muted small">Domain</label>
+                    <select class="form-select" name="domain">
+                        {% for domain in domains %}
+                            <option value="{{ domain.name }}">{{ domain.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted small">Skills / tools</label>
+                    <input type="text" name="skills_required" class="form-control" placeholder="Python, React, Figma">
+                </div>
+                <button class="btn btn-primary w-100" type="submit">Generate kit</button>
+            </form>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="workspace-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">Starter kit</h5>
+                <span id="kit-status" class="text-muted small">Waiting for input…</span>
+            </div>
+            <div id="kit-content">
+                <p class="text-muted mb-0">Fill the form to get AI-generated milestones, tasks, tech stack, and documentation pointers.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+    const form = document.getElementById('starter-kit-form');
+    const statusNode = document.getElementById('kit-status');
+    const contentNode = document.getElementById('kit-content');
+    form.addEventListener('submit', function(e){
+        e.preventDefault();
+        statusNode.textContent = 'Generating...';
+        const formData = new FormData(form);
+        fetch("", {
+            method: 'POST',
+            headers: {'X-CSRFToken': '{{ csrf_token }}'},
+            body: new URLSearchParams(formData)
+        })
+        .then(r=>r.json())
+        .then(data=>{
+            if(data.success){
+                const kit = data.starter_kit;
+                let html = '';
+                html += '<h6>Milestones</h6><ul>';
+                kit.milestones.forEach(m=>html+=`<li><strong>${m.title}</strong>: ${m.description}</li>`);
+                html += '</ul>';
+                html += '<h6>Tasks</h6><ul>';
+                kit.tasks.forEach(t=>html+=`<li>${t.title} (${t.priority})</li>`);
+                html += '</ul>';
+                html += '<h6>Tech stack</h6><p>'+kit.tech_stack.join(', ')+'</p>';
+                html += '<h6>Requirements outline</h6><ul>';
+                kit.requirements.forEach(r=>html+=`<li>${r}</li>`);
+                html += '</ul>';
+                contentNode.innerHTML = html;
+                statusNode.textContent = 'Ready';
+            } else {
+                statusNode.textContent = 'Error';
+            }
+        });
+    });
+})();
+</script>
+{% endblock %}
+

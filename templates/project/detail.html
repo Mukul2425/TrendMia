@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ project.title }} · Trendmia{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-8">
+        <article class="project-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <p class="text-muted small mb-1">Posted by <strong>{{ project.user.name }}</strong></p>
+                    <h2 class="mb-2">{{ project.title }}</h2>
+                    <div class="project-meta">
+                        <span><i class="fa-solid fa-layer-group me-1"></i>{{ project.domain.name if project.domain }}</span>
+                        <span><i class="fa-solid fa-location-dot me-1"></i>{{ project.location|default:"Remote" }}</span>
+                        <span><i class="fa-solid fa-eye me-1"></i>{{ project.views_count }} views</span>
+                        <span><i class="fa-solid fa-heart text-danger me-1"></i><span id="like-count">{{ project.likes_count }}</span> likes</span>
+                    </div>
+                </div>
+                {% if project.cover_image %}
+                    <img src="{{ project.cover_image.url }}" class="img-fluid rounded" style="max-width:180px;" alt="{{ project.title }}">
+                {% endif %}
+            </div>
+            <p class="text-secondary mt-3">{{ project.description }}</p>
+            {% if project.problem_statement %}
+                <div class="alert alert-light border rounded-4">
+                    <h6 class="text-uppercase small text-muted mb-2">Problem statement</h6>
+                    <p class="mb-0">{{ project.problem_statement }}</p>
+                </div>
+            {% endif %}
+            {% if project.skills_required %}
+                <div class="mb-3">
+                    {% for skill in project.skills_required %}
+                        <span class="skill-chip"><i class="fa-solid fa-bolt me-1"></i>{{ skill }}</span>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            {% if project.tags.all %}
+                <div class="mb-3">
+                    {% for tag in project.tags.all %}
+                        <span class="tag-chip">{{ tag.name }}</span>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            <div class="d-flex flex-wrap gap-2 mt-4">
+                {% if user.is_authenticated %}
+                    <button id="like-btn" class="btn btn-outline-danger btn-sm" data-liked="{{ is_liked|yesno:'true,false' }}">
+                        <i class="fa-solid fa-heart me-1"></i>
+                        <span id="like-label">{% if is_liked %}Unlike{% else %}Like project{% endif %}</span>
+                    </button>
+                    {% if can_collaborate %}
+                        <a href="{% url 'request_collaboration_new' project.id %}" class="btn btn-outline-success btn-sm">
+                            <i class="fa-solid fa-handshake me-1"></i>Request collaboration
+                        </a>
+                    {% elif has_requested %}
+                        <span class="badge-soft">Collaboration requested</span>
+                    {% endif %}
+                    {% if project.workspace %}
+                        <a href="{% url 'workspace_dashboard' project.id %}" class="btn btn-outline-primary btn-sm">
+                            <i class="fa-solid fa-table-columns me-1"></i>Workspace
+                        </a>
+                    {% endif %}
+                {% else %}
+                    <a href="{% url 'login' %}" class="btn btn-primary btn-sm">Login to interact</a>
+                {% endif %}
+            </div>
+        </article>
+
+        <section class="project-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">Discussion</h5>
+                <span class="text-muted small">{{ comments|length }} comments</span>
+            </div>
+            <div id="comment-thread" class="mb-3">
+                {% for comment in comments %}
+                    <div class="note-card mb-2">
+                        <strong>{{ comment.user.name }}</strong>
+                        <p class="mb-1">{{ comment.content }}</p>
+                        <small class="text-muted">{{ comment.created_at|timesince }} ago</small>
+                    </div>
+                {% empty %}
+                    <p class="text-muted small">No comments yet. Be the first to share feedback!</p>
+                {% endfor %}
+            </div>
+            {% if user.is_authenticated %}
+                <form id="project-comment-form" class="comment-form">
+                    {% csrf_token %}
+                    <div class="input-group">
+                        <input type="text" name="content" class="form-control" placeholder="Share insight or feedback..." required>
+                        <button class="btn btn-primary" type="submit"><i class="fa-solid fa-paper-plane"></i></button>
+                    </div>
+                </form>
+            {% else %}
+                <p class="text-muted small mb-0">Login to join the discussion.</p>
+            {% endif %}
+        </section>
+    </div>
+    <div class="col-lg-4">
+        <div class="workspace-card mb-3">
+            <h6 class="text-uppercase small text-muted">Team</h6>
+            <ul class="list-unstyled small mb-0">
+                {% for member in members %}
+                    <li class="d-flex justify-content-between">
+                        <span>{{ member.user.name }}</span>
+                        <span class="text-muted">{{ member.role|title }}</span>
+                    </li>
+                {% empty %}
+                    <li class="text-muted">No collaborators yet.</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% if ai_collaborators %}
+            <div class="workspace-card mb-3">
+                <h6 class="text-uppercase text-muted small">AI suggested collaborators</h6>
+                {% for rec in ai_collaborators %}
+                    <div class="collab-card mb-2">
+                        <strong>{{ rec.user.name }}</strong>
+                        <p class="text-muted small mb-1">Match score {{ rec.score|floatformat:2 }}</p>
+                        <ul class="text-muted small ps-3 mb-0">
+                            {% for reason in rec.reasons %}
+                                <li>{{ reason }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% if collaboration_requests %}
+            <div class="workspace-card">
+                <h6 class="text-uppercase text-muted small">Pending requests</h6>
+                {% for req in collaboration_requests %}
+                    <div class="collab-card mb-2">
+                        <strong>{{ req.requester.name }}</strong>
+                        <p class="text-muted small mb-1">{{ req.role|title }} · {{ req.created_at|timesince }} ago</p>
+                        <p class="text-muted small mb-2">{{ req.message }}</p>
+                        <div class="d-flex gap-2">
+                            <form method="post" action="{% url 'respond_collaboration_new' req.id %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="accept">
+                                <button class="btn btn-success btn-sm" type="submit">Accept</button>
+                            </form>
+                            <form method="post" action="{% url 'respond_collaboration_new' req.id %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="decline">
+                                <button class="btn btn-outline-danger btn-sm" type="submit">Decline</button>
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if user.is_authenticated %}
+<script>
+(function(){
+    const csrftoken = '{{ csrf_token }}';
+    const projectId = {{ project.id }};
+    const likeBtn = document.getElementById('like-btn');
+    if(likeBtn){
+        likeBtn.addEventListener('click', function(){
+            fetch(`/project/${projectId}/like/`, {
+                method: 'POST',
+                headers: {'X-CSRFToken': csrftoken}
+            })
+            .then(r => r.json())
+            .then(data => {
+                if(data.success){
+                    document.getElementById('like-count').textContent = data.likes_count;
+                    document.getElementById('like-label').textContent = data.action === 'liked' ? 'Unlike' : 'Like project';
+                }
+            });
+        });
+    }
+
+    const form = document.getElementById('project-comment-form');
+    if(form){
+        form.addEventListener('submit', function(e){
+            e.preventDefault();
+            const content = this.querySelector('input[name="content"]').value.trim();
+            if(!content) return;
+            fetch(`/comment/${projectId}/`, {
+                method: 'POST',
+                headers:{
+                    'X-CSRFToken': csrftoken,
+                    'Content-Type':'application/x-www-form-urlencoded'
+                },
+                body: `content=${encodeURIComponent(content)}`
+            })
+            .then(r=>r.json())
+            .then(data=>{
+                if(data.success){
+                    const thread = document.getElementById('comment-thread');
+                    const card = document.createElement('div');
+                    card.className = 'note-card mb-2';
+                    card.innerHTML = `<strong>${data.comment.user}</strong><p class="mb-1">${data.comment.content}</p><small class="text-muted">just now</small>`;
+                    thread.prepend(card);
+                    form.reset();
+                }
+            });
+        });
+    }
+})();
+</script>
+{% endif %}
+{% endblock %}
+

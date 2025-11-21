@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Launch Project · Trendmia{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="form-panel">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <p class="text-muted text-uppercase small mb-1">Launch Pad</p>
+                    <h3 class="mb-0">Share a new project</h3>
+                </div>
+                <span class="badge-soft"><i class="fa-solid fa-rocket me-1"></i> Visible on feed</span>
+            </div>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                {% if form.errors %}
+                    <div class="alert alert-danger">
+                        <strong>Fix the fields below:</strong>
+                        <ul class="mb-0">
+                            {% for field in form %}
+                                {% for error in field.errors %}
+                                    <li>{{ field.label }} — {{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                            {% for error in form.non_field_errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+
+                <div class="row g-3">
+                    <div class="col-md-12">
+                        <label class="form-label text-muted small">Project title</label>
+                        {{ form.title }}
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label text-muted small">Description</label>
+                        {{ form.description }}
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label text-muted small">Problem statement</label>
+                        {{ form.problem_statement }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">Domain</label>
+                        {{ form.domain }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">Stage</label>
+                        {{ form.stage }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">Visibility</label>
+                        {{ form.visibility }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">Location</label>
+                        {{ form.location }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">Skills required</label>
+                        {{ form.skills_required }}
+                        <small class="text-muted d-block">Comma separated (e.g., React, FastAPI, Figma)</small>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">Tags</label>
+                        {{ form.tags }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">Cover image</label>
+                        {{ form.cover_image }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">Demo video URL</label>
+                        {{ form.demo_video_url }}
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-4">
+                    <a href="{% url 'feed' %}" class="btn btn-outline-secondary">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        Publish project
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="workspace-card">
+            <h5>Inspiration</h5>
+            <p class="text-muted">Your project post powers:</p>
+            <ul class="text-muted small ps-3">
+                <li>Global, domain, and collaborator feeds</li>
+                <li>Auto-created workspace with tasks & chat</li>
+                <li>AI collaborator & starter-kit recommendations</li>
+            </ul>
+            <hr>
+            <h6 class="text-muted text-uppercase small mb-2">AI Pro-tip</h6>
+            <p class="text-muted small mb-0">
+                Well-defined milestones and clear skill needs increase acceptance rates by 2.4×.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

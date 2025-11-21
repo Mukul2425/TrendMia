@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}{{ community.name }} · Community{% endblock %}
+
+{% block content %}
+<div class="project-card mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <div>
+            <p class="text-muted text-uppercase small mb-1">{{ community.community_type|title }} community</p>
+            <h2 class="mb-0">{{ community.name }}</h2>
+        </div>
+        {% if is_member %}
+            <form method="post" action="{% url 'leave_community' community.id %}">
+                {% csrf_token %}
+                <button class="btn btn-outline-danger">Leave community</button>
+            </form>
+        {% else %}
+            <form method="post" action="{% url 'join_community' community.id %}">
+                {% csrf_token %}
+                <button class="btn btn-primary">Join community</button>
+            </form>
+        {% endif %}
+    </div>
+    <p class="text-muted small mb-2">Created {{ community.created_at|date:"M d, Y" }} · {{ community.members.count }} members</p>
+    <p class="text-secondary mb-0">{{ community.description }}</p>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="workspace-card">
+            <h6 class="text-uppercase text-muted small mb-3">Members</h6>
+            <ul class="list-unstyled small mb-0">
+                {% for member in community.members.all %}
+                    <li>{{ member.name }}</li>
+                {% empty %}
+                    <li class="text-muted">No members yet.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="workspace-card">
+            <h5 class="mb-3">Recent projects</h5>
+            {% for project in projects %}
+                <div class="project-card mb-3">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="mb-1"><a href="{% url 'project_detail' project.id %}">{{ project.title }}</a></h6>
+                            <p class="text-muted small mb-1">{{ project.user.name }} · {{ project.created_at|timesince }} ago</p>
+                            <p class="mb-0 text-secondary">{{ project.description|truncatechars:140 }}</p>
+                        </div>
+                        <span class="badge-soft">{{ project.get_stage_display }}</span>
+                    </div>
+                </div>
+            {% empty %}
+                <p class="text-muted small mb-0">Members haven't shared projects yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

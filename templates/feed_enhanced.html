@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Explore Feed · Trendmia{% endblock %}
+
+{% block content %}
+<div class="hero-section mb-4">
+    <h2 class="mb-2">Explore tailored project streams</h2>
+    <p class="mb-0">Filter by collaborators, domains, geography, or project stage to discover the most relevant teams.</p>
+</div>
+
+<form method="get" class="project-card mb-4">
+    <div class="row g-3">
+        <div class="col-md-3">
+            <label class="form-label text-muted small">Feed type</label>
+            <select class="form-select" name="type">
+                <option value="all" {% if feed_type == 'all' %}selected{% endif %}>All</option>
+                <option value="following" {% if feed_type == 'following' %}selected{% endif %}>Following</option>
+                <option value="collaborators" {% if feed_type == 'collaborators' %}selected{% endif %}>My collaborators</option>
+                <option value="domain" {% if feed_type == 'domain' %}selected{% endif %}>By domain</option>
+                <option value="location" {% if feed_type == 'location' %}selected{% endif %}>By location</option>
+                <option value="stage" {% if feed_type == 'stage' %}selected{% endif %}>By project stage</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label text-muted small">Domain</label>
+            <select class="form-select" name="domain">
+                <option value="">Any</option>
+                {% for domain in domains %}
+                    <option value="{{ domain.id }}" {% if selected_domain == domain.id|stringformat:'s' %}selected{% endif %}>
+                        {{ domain.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label text-muted small">Location</label>
+            <input type="text" name="location" value="{{ selected_location }}" class="form-control" placeholder="City or college">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label text-muted small">Stage</label>
+            <select class="form-select" name="stage">
+                <option value="">Any</option>
+                <option value="idea" {% if selected_stage == 'idea' %}selected{% endif %}>Idea</option>
+                <option value="seeking_collaborators" {% if selected_stage == 'seeking_collaborators' %}selected{% endif %}>Seeking collaborators</option>
+                <option value="in_progress" {% if selected_stage == 'in_progress' %}selected{% endif %}>In Progress</option>
+                <option value="completed" {% if selected_stage == 'completed' %}selected{% endif %}>Completed</option>
+            </select>
+        </div>
+        <div class="col-md-9">
+            <label class="form-label text-muted small">Search</label>
+            <input type="text" class="form-control" name="q" value="{{ search_query }}" placeholder="Keywords, skills, or tools">
+        </div>
+        <div class="col-md-3 d-flex align-items-end gap-2">
+            <button class="btn btn-primary w-100" type="submit">
+                <i class="fa-solid fa-filter me-1"></i>Apply filters
+            </button>
+            <a href="{% url 'enhanced_feed' %}" class="btn btn-outline-secondary">
+                Reset
+            </a>
+        </div>
+    </div>
+</form>
+
+{% if ai_recommendations %}
+    <section class="project-card mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0"><i class="fa-solid fa-robot me-2 text-success"></i>AI picks for you</h5>
+            <span class="text-muted small">Based on your skills & past work</span>
+        </div>
+        <div class="row g-3">
+            {% for rec in ai_recommendations %}
+                <div class="col-md-6">
+                    <div class="workspace-card">
+                        <h6 class="mb-1">{{ rec.project.title }}</h6>
+                        <p class="text-muted small mb-2">{{ rec.project.description|truncatechars:120 }}</p>
+                        <ul class="text-muted small ps-3 mb-2">
+                            {% for reason in rec.reasons %}
+                                <li>{{ reason }}</li>
+                            {% endfor %}
+                        </ul>
+                        <a href="{% url 'project_detail' rec.project.id %}" class="btn btn-sm btn-outline-primary">
+                            View project
+                        </a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+{% endif %}
+
+{% for project in projects %}
+    <article class="project-card mb-3">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h4 class="mb-1"><a href="{% url 'project_detail' project.id %}">{{ project.title }}</a></h4>
+                <p class="text-muted small mb-2">by {{ project.user.name }} · {{ project.created_at|timesince }} ago</p>
+                <p class="mb-2 text-secondary">{{ project.description|truncatechars:220 }}</p>
+                <div class="project-meta">
+                    {% if project.domain %}<span><i class="fa-solid fa-layer-group me-1"></i>{{ project.domain.name }}</span>{% endif %}
+                    <span><i class="fa-solid fa-rocket me-1"></i>{{ project.get_stage_display }}</span>
+                    {% if project.location %}<span><i class="fa-solid fa-location-dot me-1"></i>{{ project.location }}</span>{% endif %}
+                </div>
+            </div>
+            <a class="btn btn-outline-secondary btn-sm" href="{% url 'project_detail' project.id %}">
+                Open
+            </a>
+        </div>
+    </article>
+{% empty %}
+    <div class="empty-state">
+        <i class="fa-solid fa-face-thinking fs-1 mb-3 text-primary"></i>
+        <h4>No projects match these filters</h4>
+        <p class="text-muted">Try widening the criteria to discover more teams.</p>
+    </div>
+{% endfor %}
+
+{% if projects.has_other_pages %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if projects.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ projects.previous_page_number }}&{{ request.GET.urlencode|cut:'page='|cut:projects.number|stringformat:'s' }}">Previous</a></li>
+            {% endif %}
+            <li class="page-item active"><span class="page-link">{{ projects.number }}</span></li>
+            {% if projects.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ projects.next_page_number }}&{{ request.GET.urlencode|cut:'page='|cut:projects.number|stringformat:'s' }}">Next</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+{% endif %}
+{% endblock %}
+

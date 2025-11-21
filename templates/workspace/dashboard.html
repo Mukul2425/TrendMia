@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Workspace · {{ project.title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <p class="text-muted text-uppercase small mb-1">Workspace</p>
+        <h2 class="mb-0">{{ project.title }}</h2>
+        <p class="text-muted mb-0">Stage: {{ project.get_stage_display }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'workspace_chat' project.id %}" class="btn btn-outline-secondary"><i class="fa-solid fa-comments me-1"></i>Chat</a>
+        <a href="{% url 'workspace_tasks' project.id %}" class="btn btn-outline-secondary"><i class="fa-solid fa-list-check me-1"></i>Tasks</a>
+        <a href="{% url 'workspace_notes' project.id %}" class="btn btn-outline-secondary"><i class="fa-solid fa-note-sticky me-1"></i>Notes</a>
+        <a href="{% url 'workspace_files' project.id %}" class="btn btn-outline-secondary"><i class="fa-solid fa-folder-open me-1"></i>Files</a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-8">
+        <div class="project-card">
+            <h5 class="mb-3">Progress snapshot</h5>
+            <div class="workspace-stats">
+                <div class="workspace-stat">
+                    <strong>{{ tasks|length }}</strong>
+                    <span>Recent tasks</span>
+                </div>
+                <div class="workspace-stat">
+                    <strong>{{ milestones|length }}</strong>
+                    <span>Milestones</span>
+                </div>
+                <div class="workspace-stat">
+                    <strong>{{ notes|length }}</strong>
+                    <span>Notes</span>
+                </div>
+                <div class="workspace-stat">
+                    <strong>{{ recent_files|length }}</strong>
+                    <span>Files</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="workspace-card">
+            <h5 class="mb-3">Latest tasks</h5>
+            {% for task in tasks %}
+                <div class="timeline-card mb-2">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <strong>{{ task.title }}</strong>
+                            <p class="text-muted small mb-1">{{ task.get_status_display }} · {{ task.priority|title }}</p>
+                            <p class="mb-0 text-secondary small">{{ task.description|default:"No description" }}</p>
+                        </div>
+                        <span class="badge-soft">{{ task.assigned_to.name if task.assigned_to }}</span>
+                    </div>
+                </div>
+            {% empty %}
+                <p class="text-muted small mb-0">No tasks yet.</p>
+            {% endfor %}
+        </div>
+
+        <div class="workspace-card">
+            <h5 class="mb-3">Recent chat</h5>
+            <div class="chat-thread">
+                {% for message in recent_chat %}
+                    <div class="chat-bubble {% if message.sender == user %}me{% else %}them{% endif %}">
+                        <strong>{{ message.sender.name }}</strong>
+                        <p class="mb-1">{{ message.message }}</p>
+                        <small class="text-muted">{{ message.timestamp|timesince }} ago</small>
+                    </div>
+                {% empty %}
+                    <p class="text-muted small">No messages yet.</p>
+                {% endfor %}
+            </div>
+            <a href="{% url 'workspace_chat' project.id %}" class="btn btn-outline-primary btn-sm mt-3">Open chat</a>
+        </div>
+    </div>
+    <div class="col-xl-4">
+        <div class="workspace-card mb-3">
+            <h6 class="text-uppercase text-muted small">Team members</h6>
+            <ul class="list-unstyled small mb-0">
+                {% for member in members %}
+                    <li class="d-flex justify-content-between">
+                        <span>{{ member.user.name }}</span>
+                        <span class="text-muted">{{ member.role|title }}</span>
+                    </li>
+                {% empty %}
+                    <li class="text-muted">No members yet.</li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="workspace-card mb-3">
+            <h6 class="text-uppercase text-muted small">Milestones</h6>
+            {% for milestone in milestones %}
+                <div class="timeline-card mb-2">
+                    <strong>{{ milestone.title }}</strong>
+                    <p class="text-muted small mb-1">{{ milestone.due_date|date:"M d, Y" }} · {% if milestone.completed %}Completed{% else %}Pending{% endif %}</p>
+                    <p class="mb-0 text-secondary small">{{ milestone.description }}</p>
+                </div>
+            {% empty %}
+                <p class="text-muted small mb-0">Create milestones to track progress.</p>
+            {% endfor %}
+        </div>
+        <div class="workspace-card mb-3">
+            <h6 class="text-uppercase text-muted small">Notes</h6>
+            {% for note in notes %}
+                <div class="note-card mb-2">
+                    <strong>{{ note.title }}</strong>
+                    <p class="text-muted small mb-0">{{ note.updated_at|timesince }} ago</p>
+                </div>
+            {% empty %}
+                <p class="text-muted small mb-0">No notes yet.</p>
+            {% endfor %}
+            <a href="{% url 'workspace_notes' project.id %}" class="btn btn-outline-secondary btn-sm mt-2">View notes</a>
+        </div>
+        {% if ai_suggestions %}
+            <div class="workspace-card">
+                <h6 class="text-uppercase text-muted small"><i class="fa-solid fa-robot me-1"></i>AI suggestions</h6>
+                <ul class="text-muted small ps-3 mb-0">
+                    {% for suggestion in ai_suggestions %}
+                        <li>{{ suggestion.message }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+        {% if is_owner and ai_collaborators %}
+            <div class="workspace-card mt-3">
+                <h6 class="text-uppercase text-muted small">Invite matches</h6>
+                {% for rec in ai_collaborators %}
+                    <div class="collab-card mb-2">
+                        <strong>{{ rec.user.name }}</strong>
+                        <p class="text-muted small mb-1">{{ rec.user.location }}</p>
+                        <ul class="text-muted small ps-3 mb-2">
+                            {% for reason in rec.reasons %}
+                                <li>{{ reason }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

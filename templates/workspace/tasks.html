@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Workspace Tasks · {{ project.title }}{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="workspace-card">
+            <h5 class="mb-3">Create task</h5>
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-2">
+                    <label class="form-label text-muted small">Title</label>
+                    {{ form.title }}
+                </div>
+                <div class="mb-2">
+                    <label class="form-label text-muted small">Description</label>
+                    {{ form.description }}
+                </div>
+                <div class="mb-2">
+                    <label class="form-label text-muted small">Status</label>
+                    {{ form.status }}
+                </div>
+                <div class="mb-2">
+                    <label class="form-label text-muted small">Priority</label>
+                    {{ form.priority }}
+                </div>
+                <div class="mb-2">
+                    <label class="form-label text-muted small">Assign to</label>
+                    {{ form.assigned_to }}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted small">Due date</label>
+                    {{ form.due_date }}
+                </div>
+                <button class="btn btn-primary w-100" type="submit">Add task</button>
+            </form>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="workspace-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">Kanban board</h5>
+                <a href="{% url 'workspace_dashboard' project.id %}" class="btn btn-outline-secondary btn-sm">Back</a>
+            </div>
+            <div class="kanban-board">
+                <div class="kanban-column">
+                    <h5>To Do</h5>
+                    {% for task in tasks_todo %}
+                        <div class="task-card">
+                            <strong>{{ task.title }}</strong>
+                            <p class="text-muted small mb-1">{{ task.description|default:"No description" }}</p>
+                            <p class="text-muted small mb-2">Owner: {{ task.assigned_to.name|default:"Unassigned" }}</p>
+                            <select class="form-select form-select-sm task-status" data-task="{{ task.id }}">
+                                <option value="todo" selected>To Do</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="review">Review</option>
+                                <option value="done">Done</option>
+                            </select>
+                        </div>
+                    {% empty %}<p class="text-muted small">No tasks.</p>{% endfor %}
+                </div>
+                <div class="kanban-column">
+                    <h5>In Progress</h5>
+                    {% for task in tasks_in_progress %}
+                        <div class="task-card">
+                            <strong>{{ task.title }}</strong>
+                            <p class="text-muted small mb-1">{{ task.description|default:"No description" }}</p>
+                            <p class="text-muted small mb-2">Owner: {{ task.assigned_to.name|default:"Unassigned" }}</p>
+                            <select class="form-select form-select-sm task-status" data-task="{{ task.id }}">
+                                <option value="todo">To Do</option>
+                                <option value="in_progress" selected>In Progress</option>
+                                <option value="review">Review</option>
+                                <option value="done">Done</option>
+                            </select>
+                        </div>
+                    {% empty %}<p class="text-muted small">No tasks.</p>{% endfor %}
+                </div>
+                <div class="kanban-column">
+                    <h5>Review</h5>
+                    {% for task in tasks_review %}
+                        <div class="task-card">
+                            <strong>{{ task.title }}</strong>
+                            <p class="text-muted small mb-1">{{ task.description|default:"No description" }}</p>
+                            <p class="text-muted small mb-2">Owner: {{ task.assigned_to.name|default:"Unassigned" }}</p>
+                            <select class="form-select form-select-sm task-status" data-task="{{ task.id }}">
+                                <option value="todo">To Do</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="review" selected>Review</option>
+                                <option value="done">Done</option>
+                            </select>
+                        </div>
+                    {% empty %}<p class="text-muted small">No tasks.</p>{% endfor %}
+                </div>
+                <div class="kanban-column">
+                    <h5>Done</h5>
+                    {% for task in tasks_done %}
+                        <div class="task-card">
+                            <strong>{{ task.title }}</strong>
+                            <p class="text-muted small mb-1">{{ task.description|default:"No description" }}</p>
+                            <p class="text-muted small mb-2">Owner: {{ task.assigned_to.name|default:"Unassigned" }}</p>
+                            <select class="form-select form-select-sm task-status" data-task="{{ task.id }}">
+                                <option value="todo">To Do</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="review">Review</option>
+                                <option value="done" selected>Done</option>
+                            </select>
+                        </div>
+                    {% empty %}<p class="text-muted small">No tasks.</p>{% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.task-status').forEach(function(select){
+    select.addEventListener('change', function(){
+        fetch("{% url 'update_task_status' 0 %}".replace('0', this.dataset.task), {
+            method:'POST',
+            headers:{
+                'X-CSRFToken':'{{ csrf_token }}',
+                'Content-Type':'application/x-www-form-urlencoded'
+            },
+            body:`status=${this.value}`
+        }).then(()=>location.reload());
+    });
+});
+</script>
+{% endblock %}
+

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Create Community{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="form-panel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <p class="text-muted text-uppercase small mb-1">Community</p>
+                    <h3 class="mb-0">Start a new group</h3>
+                </div>
+                <a href="{% url 'communities' %}" class="btn btn-outline-secondary btn-sm">Back</a>
+            </div>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label text-muted small">Name</label>
+                    {{ form.name }}
+                </div>
+                <div class<div class="mb-3">
+                    <label class="form-label text-muted small">Description</label>
+                    {{ form.description }}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted small">Type</label>
+                    {{ form.community_type }}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted small">Domain</label>
+                    {{ form.domain }}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted small">Location</label>
+                    {{ form.location }}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted small">College</label>
+                    {{ form.college }}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted small">Cover image</label>
+                    {{ form.cover_image }}
+                </div>
+                <button class="btn btn-primary w-100" type="submit">Create community</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

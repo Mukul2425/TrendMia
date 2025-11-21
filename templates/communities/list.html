@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Communities · Trendmia{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <p class="text-muted text-uppercase small mb-1">Micro-communities</p>
+        <h2 class="mb-0">Explore groups</h2>
+    </div>
+    <a href="{% url 'create_community' %}" class="btn btn-primary"><i class="fa-solid fa-plus me-1"></i>Create community</a>
+</div>
+
+<form method="get" class="project-card mb-4">
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label text-muted small">Community type</label>
+            <select class="form-select" name="type">
+                <option value="">All</option>
+                <option value="college" {% if selected_type == 'college' %}selected{% endif %}>College</option>
+                <option value="tech_club" {% if selected_type == 'tech_club' %}selected{% endif %}>Tech club</option>
+                <option value="research_group" {% if selected_type == 'research_group' %}selected{% endif %}>Research group</option>
+                <option value="hackathon" {% if selected_type == 'hackathon' %}selected{% endif %}>Hackathon</option>
+                <option value="general" {% if selected_type == 'general' %}selected{% endif %}>General</option>
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label text-muted small">Domain</label>
+            <select class="form-select" name="domain">
+                <option value="">Any</option>
+                {% for domain in domains %}
+                    <option value="{{ domain.id }}" {% if selected_domain == domain.id|stringformat:'s' %}selected{% endif %}>{{ domain.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    <div class="d-flex justify-content-between align-items-center mt-3">
+        <button class="btn btn-primary" type="submit">Filter</button>
+        <a href="{% url 'communities' %}" class="btn btn-outline-secondary">Reset</a>
+    </div>
+</form>
+
+<div class="row g-4">
+    {% for community in communities %}
+        <div class="col-md-6 col-xl-4">
+            <div class="community-card h-100">
+                <h5 class="mb-1">{{ community.name }}</h5>
+                <p class="text-muted small mb-2">{{ community.community_type|title }}</p>
+                <p class="text-secondary">{{ community.description|truncatechars:120 }}</p>
+                <p class="text-muted small mb-2">{{ community.member_count }} members</p>
+                <a class="btn btn-outline-primary btn-sm" href="{% url 'community_detail' community.id %}">Open</a>
+            </div>
+        </div>
+    {% empty %}
+        <div class="col-12">
+            <div class="empty-state">
+                <h4>No communities found</h4>
+                <p class="text-muted">Try a different filter or create a new community.</p>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
