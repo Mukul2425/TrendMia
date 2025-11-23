@@ -295,11 +295,14 @@ def feed(request):
     
     if request.user.is_authenticated:
         following_set = set(request.user.following.values_list('following_id', flat=True))
+        liked_project_ids = set(Like.objects.filter(user=request.user).values_list('project_id', flat=True))
         for project in posts:
             project.is_following = project.user_id in following_set
+            project.is_liked = project.id in liked_project_ids
     else:
         for project in posts:
             project.is_following = False
+            project.is_liked = False
     
     tags = Tag.objects.all()
     return render(request, 'feed.html', {

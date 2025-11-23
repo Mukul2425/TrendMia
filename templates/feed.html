@@ -4,226 +4,247 @@
 {% block title %}Trendmia Feed{% endblock %}
 
 {% block content %}
-<div class="feed-layout">
-    <aside class="sidebar">
-        <div class="sidebar-section">
-            <div class="d-flex align-items-center gap-3 mb-3">
+<div class="feed-container">
+    <!-- Filter Button (Optional) -->
+    <div class="feed-header mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <h3 class="mb-0">Feed</h3>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false">
+                    <i class="fa-solid fa-filter me-1"></i>Filters
+                </button>
                 {% if user.is_authenticated %}
-                    <img src="{% if user.avatar %}{{ user.avatar.url }}{% else %}https://ui-avatars.com/api/?name={{ user.name }}&background=6366f1&color=fff{% endif %}" class="avatar" alt="{{ user.name }}">
-                    <div>
-                        <p class="mb-0 text-muted small">Logged in as</p>
-                        <strong>{{ user.name }}</strong>
-                    </div>
-                {% else %}
-                    <img src="https://ui-avatars.com/api/?name=Guest&background=6366f1&color=fff" class="avatar" alt="Guest">
-                    <div>
-                        <p class="mb-0 text-muted small">You are browsing as</p>
-                        <strong>Guest</strong>
-                    </div>
+                <a href="{% url 'post_project' %}" class="btn btn-primary btn-sm">
+                    <i class="fa-solid fa-plus me-1"></i>Share Project
+                </a>
                 {% endif %}
             </div>
-            <a href="{% url 'post_project' %}" class="btn btn-primary w-100 mb-3 {% if not user.is_authenticated %}disabled{% endif %}">
-                <i class="fa-solid fa-plus me-2"></i> Share a project
-            </a>
-            <div class="ai-highlight">
-                <i class="fa-solid fa-robot fs-4 text-success"></i>
-                <div class="small">
-                    <strong>AI tips</strong>
-                    <p class="mb-0 text-muted">Let Trendmia draft milestones and collaborator matches once you post.</p>
-                </div>
-            </div>
         </div>
-        <div class="sidebar-section">
-            <h6 class="text-uppercase text-muted small mb-3">Filter feed</h6>
-            <form method="get" class="d-flex flex-column gap-3">
-                <div>
-                    <label class="form-label text-muted small">Location</label>
-                    <input type="text" class="form-control" name="city" placeholder="City / College" value="{{ request.GET.city }}">
-                </div>
-                <div>
-                    <label class="form-label text-muted small">Tag</label>
-                    <select class="form-select" name="tags">
-                        <option value="">Any tag</option>
-                        {% for tag in tags %}
-                            <option value="{{ tag.name }}" {% if request.GET.tags == tag.name %}selected{% endif %}>{{ tag.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div>
-                    <label class="form-label text-muted small">Status</label>
-                    <select class="form-select" name="status">
-                        <option value="">Any</option>
-                        <option value="ongoing" {% if request.GET.status == 'ongoing' %}selected{% endif %}>Ongoing</option>
-                        <option value="completed" {% if request.GET.status == 'completed' %}selected{% endif %}>Completed</option>
-                    </select>
-                </div>
-                <button class="btn btn-soft w-100" type="submit">
-                    <i class="fa-solid fa-filter me-2"></i>Apply filters
-                </button>
-                <a href="{% url 'feed' %}" class="text-center text-muted small">Reset</a>
-            </form>
-        </div>
-        <div class="sidebar-section">
-            <h6 class="text-uppercase text-muted small mb-3">Trending tags</h6>
-            <div>
-                {% for tag in tags|slice:":8" %}
-                    <span class="badge-soft d-inline-flex align-items-center gap-1 mb-2">
-                        <i class="fa-solid fa-hashtag"></i> {{ tag.name }}
-                    </span>
-                {% empty %}
-                    <p class="text-muted small mb-0">No tags yet</p>
-                {% endfor %}
-            </div>
-        </div>
-    </aside>
-
-    <section>
-        {% if posts %}
-            {% for post in posts %}
-                <article class="project-card">
-                    <div class="project-header">
-                        <div class="project-owner">
-                            <img src="{% if post.user.avatar %}{{ post.user.avatar.url }}{% else %}https://ui-avatars.com/api/?name={{ post.user.name }}&background=8b5cf6&color=fff{% endif %}" class="avatar" alt="{{ post.user.name }}">
-                            <div class="user-meta">
-                                <span class="name"><a href="{% url 'user_profile' post.user.username %}">{{ post.user.name }}</a></span>
-                                <span class="handle">@{{ post.user.username }}</span>
-                            </div>
-                        </div>
-                        <div class="text-end">
-                            <small class="text-muted d-block">{{ post.created_at|timesince }} ago</small>
-                            {% if post.stage %}
-                                <span class="badge-soft text-uppercase">{{ post.get_stage_display }}</span>
-                            {% endif %}
-                        </div>
+        <!-- Collapsible Filter Form -->
+        <div class="collapse mt-3" id="filterCollapse">
+            <div class="project-card p-3">
+                <form method="get" class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small">Location</label>
+                        <input type="text" class="form-control form-control-sm" name="city" placeholder="City / College" value="{{ request.GET.city }}">
                     </div>
-                    <div class="project-body">
-                        <h3 class="fw-semibold">{{ post.title }}</h3>
-                        <p class="text-muted">{{ post.description|truncatechars:220 }}</p>
-                        {% if post.problem_statement %}
-                            <div class="alert alert-light border rounded-4">
-                                <small class="text-muted text-uppercase fw-bold">Problem statement</small>
-                                <p class="mb-0">{{ post.problem_statement|truncatechars:200 }}</p>
-                            </div>
-                        {% endif %}
-                        <div class="project-meta">
-                            {% if post.domain %}
-                                <span><i class="fa-solid fa-layer-group me-1"></i> {{ post.domain.name }}</span>
-                            {% endif %}
-                            {% if post.location %}
-                                <span><i class="fa-solid fa-location-dot me-1"></i> {{ post.location }}</span>
-                            {% endif %}
-                            <span><i class="fa-solid fa-eye me-1"></i> {{ post.views_count }} views</span>
-                            <span><i class="fa-solid fa-heart me-1 text-danger"></i> {{ post.likes_count }} likes</span>
-                        </div>
-                        {% if post.skills_required %}
-                            <div class="mb-3">
-                                {% for skill in post.skills_required %}
-                                    <span class="skill-chip"><i class="fa-solid fa-bolt"></i> {{ skill }}</span>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                        {% if post.tags.all %}
-                            <div class="mb-3">
-                                {% for tag in post.tags.all %}
-                                    <span class="tag-chip"><i class="fa-solid fa-hashtag"></i> {{ tag.name }}</span>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-                    <div class="project-actions">
-                        <a href="{% url 'project_detail' post.id %}" class="btn btn-outline-secondary btn-sm">
-                            <i class="fa-solid fa-diagram-project me-1"></i> View project
-                        </a>
-                        {% if user.is_authenticated and user != post.user %}
-                            <button class="btn btn-outline-primary btn-sm follow-btn"
-                                    data-username="{{ post.user.username }}"
-                                    data-following="{{ post.is_following|default_if_none:False }}">
-                                {% if post.is_following %}<i class="fa-solid fa-user-minus me-1"></i>Unfollow{% else %}<i class="fa-solid fa-user-plus me-1"></i>Follow{% endif %}
-                            </button>
-                            <button class="btn btn-outline-success btn-sm collab-btn"
-                                    data-project-id="{{ post.id }}"
-                                    data-username="{{ post.user.username }}">
-                                <i class="fa-solid fa-handshake me-1"></i>Request collaboration
-                            </button>
-                            <a href="{% url 'chat' post.user.username %}" class="btn btn-outline-secondary btn-sm">
-                                <i class="fa-solid fa-message me-1"></i>Message
-                            </a>
-                        {% endif %}
-                    </div>
-                    <hr class="my-4">
-                    <div class="comments-section">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h6 class="mb-0">Comments ({{ post.comments.count }})</h6>
-                            <a href="{% url 'project_detail' post.id %}" class="text-muted small">Open thread</a>
-                        </div>
-                        <div class="comments-list" id="comments-{{ post.id }}">
-                            {% for comment in post.comments.all|slice:":3" %}
-                                <div class="note-card mb-2">
-                                    <strong>{{ comment.user.name }}</strong>
-                                    <p class="mb-1">{{ comment.content }}</p>
-                                    <small class="text-muted">{{ comment.created_at|timesince }} ago</small>
-                                </div>
-                            {% empty %}
-                                <p class="text-muted small">No comments yet.</p>
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small">Tag</label>
+                        <select class="form-select form-select-sm" name="tags">
+                            <option value="">Any tag</option>
+                            {% for tag in tags %}
+                                <option value="{{ tag.name }}" {% if request.GET.tags == tag.name %}selected{% endif %}>{{ tag.name }}</option>
                             {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small">Status</label>
+                        <select class="form-select form-select-sm" name="status">
+                            <option value="">Any</option>
+                            <option value="ongoing" {% if request.GET.status == 'ongoing' %}selected{% endif %}>Ongoing</option>
+                            <option value="completed" {% if request.GET.status == 'completed' %}selected{% endif %}>Completed</option>
+                        </select>
+                    </div>
+                    <div class="col-12 d-flex gap-2">
+                        <button class="btn btn-primary btn-sm" type="submit">
+                            <i class="fa-solid fa-filter me-1"></i>Apply
+                        </button>
+                        <a href="{% url 'feed' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="feed-layout-wide">
+        <main class="feed-main">
+            {% if posts %}
+                {% for post in posts %}
+                    <article class="feed-post-card">
+                        <!-- Post Header -->
+                        <div class="feed-post-header">
+                            <div class="d-flex align-items-center gap-2">
+                                <a href="{% url 'user_profile' post.user.username %}">
+                                    <img src="{% if post.user.avatar %}{{ post.user.avatar.url }}{% else %}https://ui-avatars.com/api/?name={{ post.user.name }}&background=0a66c2&color=fff{% endif %}" class="feed-avatar" alt="{{ post.user.name }}">
+                                </a>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <a href="{% url 'user_profile' post.user.username %}" class="feed-username">{{ post.user.name }}</a>
+                                        <span class="feed-handle">@{{ post.user.username }}</span>
+                                        <span class="feed-time">· {{ post.created_at|timesince }} ago</span>
+                                    </div>
+                                    {% if post.stage %}
+                                    <div class="mt-1">
+                                        <span class="feed-stage-badge">{{ post.get_stage_display }}</span>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% if user.is_authenticated and user != post.user %}
+                                <button class="btn btn-outline-primary btn-sm follow-btn"
+                                        data-username="{{ post.user.username }}"
+                                        data-following="{{ post.is_following|default_if_none:False }}">
+                                    {% if post.is_following %}
+                                        <i class="fa-solid fa-user-check me-1"></i>Following
+                                    {% else %}
+                                        <i class="fa-solid fa-user-plus me-1"></i>Follow
+                                    {% endif %}
+                                </button>
+                                {% endif %}
+                            </div>
                         </div>
+
+                        <!-- Post Content -->
+                        <div class="feed-post-content">
+                            <h4 class="feed-post-title">
+                                <a href="{% url 'project_detail' post.id %}">{{ post.title }}</a>
+                            </h4>
+                            <p class="feed-post-description">{{ post.description|truncatechars:150 }}</p>
+                            
+                            <!-- Cover Image -->
+                            {% if post.cover_image %}
+                            <div class="feed-post-image">
+                                <a href="{% url 'project_detail' post.id %}">
+                                    <img src="{{ post.cover_image.url }}" alt="{{ post.title }}" class="img-fluid rounded">
+                                </a>
+                            </div>
+                            {% endif %}
+
+                            <!-- Meta Info -->
+                            <div class="feed-post-meta">
+                                {% if post.domain %}
+                                <span class="feed-meta-item">
+                                    <i class="fa-solid fa-layer-group"></i> {{ post.domain.name }}
+                                </span>
+                                {% endif %}
+                                {% if post.location %}
+                                <span class="feed-meta-item">
+                                    <i class="fa-solid fa-location-dot"></i> {{ post.location }}
+                                </span>
+                                {% endif %}
+                            </div>
+
+                            <!-- Tags (if any) -->
+                            {% if post.tags.all %}
+                            <div class="feed-post-tags">
+                                {% for tag in post.tags.all|slice:":5" %}
+                                    <span class="feed-tag">#{{ tag.name }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Post Actions -->
+                        <div class="feed-post-actions">
+                            {% if user.is_authenticated %}
+                            <button class="feed-action-btn like-btn" data-project-id="{{ post.id }}" data-liked="{% if post.is_liked %}true{% else %}false{% endif %}">
+                                <i class="{% if post.is_liked %}fa-solid text-danger{% else %}fa-regular{% endif %} fa-heart"></i>
+                                <span class="like-count">{{ post.likes_count }}</span>
+                            </button>
+                            <button class="feed-action-btn comment-btn" onclick="document.getElementById('comment-input-{{ post.id }}').focus()">
+                                <i class="fa-solid fa-comment"></i>
+                                <span>{{ post.comments.count }}</span>
+                            </button>
+                            <button class="feed-action-btn bookmark-btn" data-project-id="{{ post.id }}">
+                                <i class="fa-regular fa-bookmark"></i>
+                            </button>
+                            {% else %}
+                            <span class="feed-action-btn text-muted">
+                                <i class="fa-solid fa-heart"></i>
+                                <span>{{ post.likes_count }}</span>
+                            </span>
+                            <span class="feed-action-btn text-muted">
+                                <i class="fa-solid fa-comment"></i>
+                                <span>{{ post.comments.count }}</span>
+                            </span>
+                            {% endif %}
+                            <a href="{% url 'project_detail' post.id %}" class="feed-action-btn feed-view-btn">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                View Project
+                            </a>
+                        </div>
+
+                        <!-- Quick Comment Section -->
                         {% if user.is_authenticated %}
-                            <form class="comment-form mt-3" data-project-id="{{ post.id }}">
+                        <div class="feed-post-comment-section">
+                            <form class="feed-comment-form" data-project-id="{{ post.id }}">
                                 {% csrf_token %}
-                                <div class="input-group">
-                                    <input type="text" name="content" class="form-control" placeholder="Say something helpful..." required>
-                                    <button class="btn btn-primary" type="submit">
+                                <div class="d-flex gap-2">
+                                    <img src="{% if user.avatar %}{{ user.avatar.url }}{% else %}https://ui-avatars.com/api/?name={{ user.name }}&background=0a66c2&color=fff{% endif %}" class="feed-avatar-sm" alt="{{ user.name }}">
+                                    <div class="flex-grow-1">
+                                        <input type="text" 
+                                               id="comment-input-{{ post.id }}"
+                                               name="content" 
+                                               class="form-control form-control-sm" 
+                                               placeholder="Write a comment..." 
+                                               required>
+                                    </div>
+                                    <button class="btn btn-primary btn-sm" type="submit">
                                         <i class="fa-solid fa-paper-plane"></i>
                                     </button>
                                 </div>
                             </form>
-                        {% else %}
-                            <p class="text-muted small">Log in to join the discussion.</p>
+                        </div>
                         {% endif %}
-                    </div>
-                </article>
-            {% endfor %}
-        {% else %}
-            <div class="empty-state">
-                <i class="fa-solid fa-shuttle-space fs-1 text-primary mb-3"></i>
-                <h4>No projects yet</h4>
-                <p class="text-muted">Be the first to share something inspiring.</p>
-                <a href="{% url 'post_project' %}" class="btn btn-primary mt-2">Create a project</a>
-            </div>
-        {% endif %}
-    </section>
+                    </article>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <i class="fa-solid fa-shuttle-space fs-1 text-primary mb-3"></i>
+                    <h4>No projects yet</h4>
+                    <p class="text-muted">Be the first to share something inspiring.</p>
+                    {% if user.is_authenticated %}
+                    <a href="{% url 'post_project' %}" class="btn btn-primary mt-2">Create a project</a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </main>
 
-    <aside class="sidebar">
-        <div class="sidebar-section">
-            <h6 class="text-uppercase text-muted small mb-3">Quick links</h6>
-            <div class="d-grid gap-2">
-                <a href="{% url 'enhanced_feed' %}" class="btn btn-outline-secondary btn-sm">
-                    <i class="fa-solid fa-sliders me-2"></i> Smart feed
+        <!-- Right Sidebar -->
+        <aside class="feed-sidebar-right">
+            {% if user.is_authenticated %}
+            <div class="feed-sidebar-card mb-3">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <img src="{% if user.avatar %}{{ user.avatar.url }}{% else %}https://ui-avatars.com/api/?name={{ user.name }}&background=0a66c2&color=fff{% endif %}" class="feed-avatar" alt="{{ user.name }}">
+                    <div>
+                        <strong>{{ user.name }}</strong>
+                        <p class="text-muted small mb-0">@{{ user.username }}</p>
+                    </div>
+                </div>
+                <a href="{% url 'post_project' %}" class="btn btn-primary w-100 btn-sm mb-2">
+                    <i class="fa-solid fa-plus me-1"></i>Share Project
                 </a>
-                <a href="{% url 'communities' %}" class="btn btn-outline-secondary btn-sm">
-                    <i class="fa-solid fa-users me-2"></i> Communities
-                </a>
-                {% if user.is_authenticated %}
-                    <a href="{% url 'profile' %}" class="btn btn-outline-secondary btn-sm">
-                        <i class="fa-solid fa-briefcase me-2"></i> My workspaces
+            </div>
+            {% endif %}
+
+            <div class="feed-sidebar-card mb-3">
+                <h6 class="text-uppercase text-muted small mb-3">Quick Links</h6>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'enhanced_feed' %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fa-solid fa-sliders me-2"></i>Smart Feed
                     </a>
-                {% else %}
-                    <span class="text-muted small text-center">Sign in to access workspaces</span>
-                {% endif %}
+                    <a href="{% url 'communities' %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fa-solid fa-users me-2"></i>Communities
+                    </a>
+                    {% if user.is_authenticated %}
+                    <a href="{% url 'profile' %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fa-solid fa-briefcase me-2"></i>My Workspaces
+                    </a>
+                    {% endif %}
+                </div>
             </div>
-        </div>
-        <div class="sidebar-section">
-            <h6 class="text-uppercase text-muted small mb-3">Builder tips</h6>
-            <div class="note-card">
-                <strong>Highlight outcomes</strong>
-                <p class="text-muted small mb-0">Projects with clear milestones get 2.4× more qualified collaborators.</p>
+
+            <div class="feed-sidebar-card">
+                <h6 class="text-uppercase text-muted small mb-3">Trending Tags</h6>
+                <div class="d-flex flex-wrap gap-2">
+                    {% for tag in tags|slice:":10" %}
+                        <a href="?tags={{ tag.name }}" class="feed-tag-small">#{{ tag.name }}</a>
+                    {% empty %}
+                        <p class="text-muted small mb-0">No tags yet</p>
+                    {% endfor %}
+                </div>
             </div>
-            <div class="note-card mt-3">
-                <strong>Share your stack</strong>
-                <p class="text-muted small mb-0">Mentioning tools and datasets helps our AI recommend better teammates.</p>
-            </div>
-        </div>
-    </aside>
+        </aside>
+    </div>
 </div>
 {% endblock %}
 
@@ -232,9 +253,12 @@
     (function() {
         const csrftoken = '{{ csrf_token }}';
 
+        // Follow/Unfollow functionality
         document.querySelectorAll('.follow-btn').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 const username = this.dataset.username;
+                const isFollowing = this.dataset.following === 'true';
+                
                 fetch(`/follow/${username}/`, {
                     method: 'POST',
                     headers: {
@@ -246,16 +270,58 @@
                 .then(r => r.json())
                 .then(data => {
                     if (data.success) {
-                        this.dataset.following = data.action === 'followed';
-                        this.innerHTML = data.action === 'followed'
-                            ? '<i class="fa-solid fa-user-minus me-1"></i>Unfollow'
-                            : '<i class="fa-solid fa-user-plus me-1"></i>Follow';
+                        this.dataset.following = data.action === 'followed' ? 'true' : 'false';
+                        if (data.action === 'followed') {
+                            this.innerHTML = '<i class="fa-solid fa-user-check me-1"></i>Following';
+                            this.classList.remove('btn-outline-primary');
+                            this.classList.add('btn-primary');
+                        } else {
+                            this.innerHTML = '<i class="fa-solid fa-user-plus me-1"></i>Follow';
+                            this.classList.remove('btn-primary');
+                            this.classList.add('btn-outline-primary');
+                        }
                     }
                 });
             });
         });
 
-        document.querySelectorAll('.comment-form').forEach(function(form) {
+        // Like functionality
+        document.querySelectorAll('.like-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                const projectId = this.dataset.projectId;
+                const isLiked = this.dataset.liked === 'true';
+                const icon = this.querySelector('i');
+                const countSpan = this.querySelector('.like-count');
+                
+                fetch(`/project/${projectId}/like/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrftoken
+                    }
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        this.dataset.liked = data.action === 'liked' ? 'true' : 'false';
+                        if (data.action === 'liked') {
+                            icon.classList.add('text-danger');
+                            icon.classList.remove('fa-regular');
+                            icon.classList.add('fa-solid');
+                        } else {
+                            icon.classList.remove('text-danger');
+                            icon.classList.remove('fa-solid');
+                            icon.classList.add('fa-regular');
+                        }
+                        if (countSpan) {
+                            countSpan.textContent = data.likes_count;
+                        }
+                    }
+                });
+            });
+        });
+
+        // Comment form submission
+        document.querySelectorAll('.feed-comment-form').forEach(function(form) {
             form.addEventListener('submit', function(e) {
                 e.preventDefault();
                 const projectId = this.dataset.projectId;
@@ -273,35 +339,34 @@
                 .then(r => r.json())
                 .then(data => {
                     if (data.success) {
-                        const list = document.getElementById(`comments-${projectId}`);
-                        const div = document.createElement('div');
-                        div.className = 'note-card mb-2';
-                        div.innerHTML = `<strong>${data.comment.user}</strong><p class="mb-1">${data.comment.content}</p><small class="text-muted">just now</small>`;
-                        list.prepend(div);
+                        // Update comment count
+                        const commentBtn = document.querySelector(`.comment-btn[data-project-id="${projectId}"]`);
+                        if (commentBtn) {
+                            const countSpan = commentBtn.querySelector('span');
+                            if (countSpan) {
+                                const currentCount = parseInt(countSpan.textContent) || 0;
+                                countSpan.textContent = currentCount + 1;
+                            }
+                        }
                         this.reset();
                     }
                 });
             });
         });
 
-        document.querySelectorAll('.collab-btn').forEach(function(btn) {
+        // Bookmark functionality (placeholder - implement if needed)
+        document.querySelectorAll('.bookmark-btn').forEach(function(btn) {
             btn.addEventListener('click', function() {
-                const projectId = this.dataset.projectId;
-                const username = this.dataset.username;
-                const role = prompt('What role would you like to play on this project?');
-                fetch(`/collab/request/${projectId}/${username}/`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': csrftoken,
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    },
-                    body: `role=${encodeURIComponent(role || '')}&csrfmiddlewaretoken=${csrftoken}`
-                })
-                .then(r => r.json())
-                .then(data => {
-                    const msg = data.success ? 'Request sent to the project owner.' : (data.error || 'Unable to send request.');
-                    alert(msg);
-                });
+                const icon = this.querySelector('i');
+                if (icon.classList.contains('fa-regular')) {
+                    icon.classList.remove('fa-regular');
+                    icon.classList.add('fa-solid');
+                    icon.classList.add('text-warning');
+                } else {
+                    icon.classList.remove('fa-solid');
+                    icon.classList.remove('text-warning');
+                    icon.classList.add('fa-regular');
+                }
             });
         });
     })();
