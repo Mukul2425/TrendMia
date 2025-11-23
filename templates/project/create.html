@@ -46,8 +46,15 @@
                         {{ form.problem_statement }}
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label text-muted small">Domain</label>
-                        {{ form.domain }}
+                        <label class="form-label text-muted small">Domain <span class="text-muted">(Optional)</span></label>
+                        {% if domains %}
+                            {{ form.domain }}
+                        {% else %}
+                            <select name="domain" class="form-control" id="id_domain">
+                                <option value="">No domains available</option>
+                            </select>
+                            <small class="text-muted d-block">Contact admin to add domains</small>
+                        {% endif %}
                     </div>
                     <div class="col-md-6">
                         <label class="form-label text-muted small">Stage</label>
@@ -58,17 +65,25 @@
                         {{ form.visibility }}
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label text-muted small">Location</label>
+                        <label class="form-label text-muted small">Location <span class="text-muted">(Optional)</span></label>
                         {{ form.location }}
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label text-muted small">Skills required</label>
+                        <label class="form-label text-muted small">Skills required <span class="text-muted">(Optional)</span></label>
                         {{ form.skills_required }}
                         <small class="text-muted d-block">Comma separated (e.g., React, FastAPI, Figma)</small>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label text-muted small">Tags</label>
-                        {{ form.tags }}
+                        <label class="form-label text-muted small">Tags <span class="text-muted">(Optional)</span></label>
+                        {% if tags %}
+                            {{ form.tags }}
+                            <small class="text-muted d-block">Hold Ctrl/Cmd to select multiple</small>
+                        {% else %}
+                            <select name="tags" class="form-control" id="id_tags" multiple>
+                                <option value="">No tags available</option>
+                            </select>
+                            <small class="text-muted d-block">Contact admin to add tags</small>
+                        {% endif %}
                     </div>
                     <div class="col-md-6">
                         <label class="form-label text-muted small">Cover image</label>

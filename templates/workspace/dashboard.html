@@ -51,7 +51,9 @@
                             <p class="text-muted small mb-1">{{ task.get_status_display }} · {{ task.priority|title }}</p>
                             <p class="mb-0 text-secondary small">{{ task.description|default:"No description" }}</p>
                         </div>
-                        <span class="badge-soft">{{ task.assigned_to.name if task.assigned_to }}</span>
+                        {% if task.assigned_to %}
+                        <span class="badge-soft">{{ task.assigned_to.name }}</span>
+                        {% endif %}
                     </div>
                 </div>
             {% empty %}
