@@ -1,256 +1,211 @@
+{% extends 'base.html' %}
 {% load static %}
-{% load custom_filters %}
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ profile_user.name }} | Trendmia</title>
-    <link rel="stylesheet" type="text/css" href="{% static 'dist/css/profileStyle.css' %}">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-</head>
+{% block title %}{{ profile_user.name }} | TRENDMIA{% endblock %}
 
-<body>
-    <!-- Navbar -->
-    <div class="navbar">
-        <div class="container">
-            <div class="logo">
-                <img src="{% static 'dist/images/logo.svg' %}" alt="Logo">
-                Trendmia
+{% block content %}
+<div class="container my-4">
+    <!-- Profile Header -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-auto">
+                    <img src="{% if profile_user.avatar %}{{ profile_user.avatar.url }}{% else %}https://ui-avatars.com/api/?name={{ profile_user.name }}&background=0a66c2&color=fff{% endif %}" 
+                         class="avatar-lg" alt="{{ profile_user.name }}">
+                </div>
+                <div class="col">
+                    <h2 class="mb-1">{{ profile_user.name }}</h2>
+                    <p class="text-muted mb-1">@{{ profile_user.username }}</p>
+                    {% if profile_user.bio %}
+                    <p class="mb-2">{{ profile_user.bio }}</p>
+                    {% endif %}
+                    {% if profile_user.location %}
+                    <p class="text-muted mb-0"><i class="fas fa-map-marker-alt"></i> {{ profile_user.location }}</p>
+                    {% endif %}
+                </div>
+                {% if not is_own_profile and user.is_authenticated %}
+                <div class="col-auto">
+                    <button class="btn btn-primary me-2 follow-btn" data-username="{{ profile_user.username }}" data-following="{% if is_following %}true{% else %}false{% endif %}">
+                        {% if is_following %}<i class="fas fa-user-minus"></i> Unfollow{% else %}<i class="fas fa-user-plus"></i> Follow{% endif %}
+                    </button>
+                    <a href="{% url 'chat' profile_user.username %}" class="btn btn-secondary">
+                        <i class="fas fa-comment"></i> Message
+                    </a>
+                </div>
+                {% endif %}
             </div>
-            <div class="right-section">
-                <a href="{% url 'feed' %}"><i class="fas fa-home"></i> Feed</a>
-                <a href="{% url 'profile' %}"><i class="fas fa-user"></i> My Profile</a>
-                <a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a>
+
+            <!-- Stats -->
+            <div class="row mt-4">
+                <div class="col-md-4 text-center">
+                    <div class="stat">
+                        <span class="stat-number">{{ posts.count }}</span>
+                        <span class="stat-label">Projects</span>
+                    </div>
+                </div>
+                <div class="col-md-4 text-center">
+                    <div class="stat">
+                        <span class="stat-number">{{ followers_count }}</span>
+                        <span class="stat-label">Followers</span>
+                    </div>
+                </div>
+                <div class="col-md-4 text-center">
+                    <div class="stat">
+                        <span class="stat-number">{{ following_count }}</span>
+                        <span class="stat-label">Following</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="container">
-        <!-- Profile Header -->
-        <div class="profile-header">
-            <div class="profile-cover">
-                <div class="cover-image"></div>
-                <div class="profile-avatar">
-                    {% if profile_user.avatar %}
-                        <img src="{{ profile_user.avatar.url }}" alt="Profile Image">
-                    {% else %}
-                        <img src="{% static 'dist/images/logo.svg' %}" alt="Profile Image">
-                    {% endif %}
-                </div>
-            </div>
-            
-            <div class="profile-info">
-                <h1>{{ profile_user.name }}</h1>
-                <p class="username">@{{ profile_user.username }}</p>
-                {% if profile_user.bio %}
-                    <p class="bio">{{ profile_user.bio }}</p>
-                {% endif %}
-                {% if profile_user.location %}
-                    <p class="location"><i class="fas fa-map-marker-alt"></i> {{ profile_user.location }}</p>
-                {% endif %}
-                {% if profile_user.website %}
-                    <p class="website"><i class="fas fa-link"></i> <a href="{{ profile_user.website }}" target="_blank">{{ profile_user.website }}</a></p>
-                {% endif %}
-                {% if profile_user.skills %}
-                    <div class="skills">
-                        <h3>Skills</h3>
-                        <div class="skills-tags">
-                            {% for skill in profile_user.skills|split:"," %}
-                                <span class="skill-tag">{{ skill|strip }}</span>
-                            {% endfor %}
-                        </div>
-                    </div>
-                {% endif %}
-            </div>
-            
-            <div class="profile-stats">
-                <div class="stat">
-                    <span class="stat-number">{{ posts.count }}</span>
-                    <span class="stat-label">Projects</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-number">{{ followers_count }}</span>
-                    <span class="stat-label">Followers</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-number">{{ following_count }}</span>
-                    <span class="stat-label">Following</span>
-                </div>
-            </div>
-            
-            {% if not is_own_profile and user.is_authenticated %}
-            <div class="profile-actions">
-                <button class="follow-btn" data-username="{{ profile_user.username }}" data-following="{% if is_following %}true{% else %}false{% endif %}">
-                    {% if is_following %}<i class="fas fa-user-minus"></i> Unfollow{% else %}<i class="fas fa-user-plus"></i> Follow{% endif %}
-                </button>
-                <a href="{% url 'chat' profile_user.username %}" class="chat-btn">
-                    <i class="fas fa-comment"></i> Message
-                </a>
-            </div>
-            {% endif %}
-        </div>
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mb-4" id="profileTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="projects-tab" data-bs-toggle="tab" data-bs-target="#projects" type="button">
+                Projects
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="followers-tab" data-bs-toggle="tab" data-bs-target="#followers" type="button">
+                Followers
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="following-tab" data-bs-toggle="tab" data-bs-target="#following" type="button">
+                Following
+            </button>
+        </li>
+    </ul>
 
-        <!-- Profile Navigation -->
-        <div class="profile-nav">
-            <button class="nav-btn active" data-tab="projects">Projects</button>
-            <button class="nav-btn" data-tab="followers">Followers</button>
-            <button class="nav-btn" data-tab="following">Following</button>
-        </div>
-
+    <!-- Tab Content -->
+    <div class="tab-content" id="profileTabContent">
         <!-- Projects Tab -->
-        <div class="tab-content active" id="projects">
-            <div class="projects-grid">
+        <div class="tab-pane fade show active" id="projects" role="tabpanel">
+            <div class="row">
                 {% for post in posts %}
-                <div class="project-card">
-                    <div class="project-header">
-                        <h3>{{ post.project_name }}</h3>
-                        <span class="project-status status-{{ post.status }}">{{ post.status|title }}</span>
-                    </div>
-                    <p class="project-description">{{ post.project_description|truncatewords:20 }}</p>
-                    {% if post.tags %}
-                        <div class="project-tags">
-                            {% for tag in post.tags|split:"," %}
-                                <span class="tag">{{ tag|strip }}</span>
-                            {% endfor %}
+                <div class="col-md-6 mb-3">
+                    <div class="card project-card">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ post.title|default:post.project_name }}</h5>
+                            <p class="card-text text-muted">{{ post.description|default:post.project_description|truncatewords:20 }}</p>
+                            {% if post.tags.all %}
+                            <div class="mb-2">
+                                {% for tag in post.tags.all %}
+                                <span class="tag-chip">{{ tag.name }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">{{ post.created_at|date:"M d, Y" }}</small>
+                                <a href="{% url 'project_detail' post.id %}" class="btn btn-sm btn-primary">View</a>
+                            </div>
                         </div>
-                    {% endif %}
-                    <div class="project-meta">
-                        <span class="project-date"><i class="fas fa-calendar"></i> {{ post.created_at|date:"M d, Y" }}</span>
-                        {% if post.location %}
-                            <span class="project-location"><i class="fas fa-map-marker-alt"></i> {{ post.location }}</span>
-                        {% endif %}
                     </div>
                 </div>
                 {% empty %}
-                <div class="empty-state">
-                    <i class="fas fa-folder-open"></i>
-                    <h3>No projects yet</h3>
-                    <p>{{ profile_user.name }} hasn't shared any projects yet.</p>
+                <div class="col-12">
+                    <div class="empty-state">
+                        <i class="fas fa-folder-open"></i>
+                        <h5>No projects yet</h5>
+                        <p>{{ profile_user.name }} hasn't shared any projects yet.</p>
+                    </div>
                 </div>
                 {% endfor %}
             </div>
         </div>
 
         <!-- Followers Tab -->
-        <div class="tab-content" id="followers">
-            <div class="users-list">
+        <div class="tab-pane fade" id="followers" role="tabpanel">
+            <div class="row">
                 {% for follower in followers %}
-                <div class="user-card">
-                    <div class="user-avatar">
-                        {% if follower.avatar %}
-                            <img src="{{ follower.avatar.url }}" alt="{{ follower.name }}">
-                        {% else %}
-                            <img src="{% static 'dist/images/logo.svg' %}" alt="{{ follower.name }}">
-                        {% endif %}
-                    </div>
-                    <div class="user-info">
-                        <h4>{{ follower.name }}</h4>
-                        <p>@{{ follower.username }}</p>
-                        {% if follower.bio %}
-                            <p class="user-bio">{{ follower.bio|truncatewords:10 }}</p>
-                        {% endif %}
-                    </div>
-                    <div class="user-actions">
-                        <a href="{% url 'user_profile' follower.username %}" class="view-profile-btn">View Profile</a>
+                <div class="col-md-6 mb-3">
+                    <div class="card">
+                        <div class="card-body d-flex align-items-center">
+                            <img src="{% if follower.avatar %}{{ follower.avatar.url }}{% else %}https://ui-avatars.com/api/?name={{ follower.name }}&background=0a66c2&color=fff{% endif %}" 
+                                 class="avatar me-3" alt="{{ follower.name }}">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-0">{{ follower.name }}</h6>
+                                <small class="text-muted">@{{ follower.username }}</small>
+                            </div>
+                            <a href="{% url 'user_profile' follower.username %}" class="btn btn-sm btn-secondary">View</a>
+                        </div>
                     </div>
                 </div>
                 {% empty %}
-                <div class="empty-state">
-                    <i class="fas fa-users"></i>
-                    <h3>No followers yet</h3>
-                    <p>{{ profile_user.name }} doesn't have any followers yet.</p>
+                <div class="col-12">
+                    <div class="empty-state">
+                        <i class="fas fa-users"></i>
+                        <h5>No followers yet</h5>
+                        <p>{{ profile_user.name }} doesn't have any followers yet.</p>
+                    </div>
                 </div>
                 {% endfor %}
             </div>
         </div>
 
         <!-- Following Tab -->
-        <div class="tab-content" id="following">
-            <div class="users-list">
+        <div class="tab-pane fade" id="following" role="tabpanel">
+            <div class="row">
                 {% for following_user in following %}
-                <div class="user-card">
-                    <div class="user-avatar">
-                        {% if following_user.avatar %}
-                            <img src="{{ following_user.avatar.url }}" alt="{{ following_user.name }}">
-                        {% else %}
-                            <img src="{% static 'dist/images/logo.svg' %}" alt="{{ following_user.name }}">
-                        {% endif %}
-                    </div>
-                    <div class="user-info">
-                        <h4>{{ following_user.name }}</h4>
-                        <p>@{{ following_user.username }}</p>
-                        {% if following_user.bio %}
-                            <p class="user-bio">{{ following_user.bio|truncatewords:10 }}</p>
-                        {% endif %}
-                    </div>
-                    <div class="user-actions">
-                        <a href="{% url 'user_profile' following_user.username %}" class="view-profile-btn">View Profile</a>
+                <div class="col-md-6 mb-3">
+                    <div class="card">
+                        <div class="card-body d-flex align-items-center">
+                            <img src="{% if following_user.avatar %}{{ following_user.avatar.url }}{% else %}https://ui-avatars.com/api/?name={{ following_user.name }}&background=0a66c2&color=fff{% endif %}" 
+                                 class="avatar me-3" alt="{{ following_user.name }}">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-0">{{ following_user.name }}</h6>
+                                <small class="text-muted">@{{ following_user.username }}</small>
+                            </div>
+                            <a href="{% url 'user_profile' following_user.username %}" class="btn btn-sm btn-secondary">View</a>
+                        </div>
                     </div>
                 </div>
                 {% empty %}
-                <div class="empty-state">
-                    <i class="fas fa-user-plus"></i>
-                    <h3>Not following anyone</h3>
-                    <p>{{ profile_user.name }} isn't following anyone yet.</p>
+                <div class="col-12">
+                    <div class="empty-state">
+                        <i class="fas fa-user-plus"></i>
+                        <h5>Not following anyone</h5>
+                        <p>{{ profile_user.name }} isn't following anyone yet.</p>
+                    </div>
                 </div>
                 {% endfor %}
             </div>
         </div>
     </div>
+</div>
 
-    <script>
-        // Tab switching
-        document.querySelectorAll('.nav-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                // Remove active class from all buttons and content
-                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                
-                // Add active class to clicked button and corresponding content
-                btn.classList.add('active');
-                document.getElementById(btn.dataset.tab).classList.add('active');
-            });
+<script>
+// Follow/unfollow functionality
+document.querySelectorAll('.follow-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const username = this.dataset.username;
+        const isFollowing = this.dataset.following === 'true';
+        
+        fetch('/follow/' + username + '/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'csrfmiddlewaretoken={{ csrf_token }}'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                this.innerHTML = data.action === 'followed' ? 
+                    '<i class="fas fa-user-minus"></i> Unfollow' : 
+                    '<i class="fas fa-user-plus"></i> Follow';
+                this.dataset.following = data.action === 'followed' ? 'true' : 'false';
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred');
         });
-
-        // Follow/unfollow functionality
-        document.querySelectorAll('.follow-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const username = this.dataset.username;
-                const isFollowing = this.dataset.following === 'true';
-                
-                fetch('/follow/' + username + '/', {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': '{{ csrf_token }}',
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: 'csrfmiddlewaretoken={{ csrf_token }}'
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        this.innerHTML = data.action === 'followed' ? 
-                            '<i class="fas fa-user-minus"></i> Unfollow' : 
-                            '<i class="fas fa-user-plus"></i> Follow';
-                        this.dataset.following = data.action === 'followed' ? 'true' : 'false';
-                        
-                        // Update follower count
-                        const followerStat = document.querySelector('.stat:has(.stat-label:contains("Followers"))');
-                        if (followerStat) {
-                            followerStat.querySelector('.stat-number').textContent = data.followers_count;
-                        }
-                    } else {
-                        alert('Error: ' + data.error);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred');
-                });
-            });
-        });
-    </script>
-</body>
-</html>
+    });
+});
+</script>
+{% endblock %}

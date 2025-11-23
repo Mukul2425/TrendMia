@@ -1,191 +1,131 @@
-<!-- trending.html -->
-
+{% extends 'base.html' %}
 {% load static %}
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Trending Page</title>
-    <link rel="stylesheet" type="text/css" href="{% static 'dist/css/trendingStyle.css' %}">
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-    <style>
-        #plot {
-            width: 800px; /* Set the width of the plot */
-            height: 600px; /* Set the height of the plot */
-        }
-    </style>
-</head>
-<body class="dark-theme">
-    <div class="navbar">
-        <!-- Back button -->
-        <a href="{% url 'home' %}" class="back-button">Back</a>
-        <!-- Logo -->
-        <div class="logo">
-            <img src="{% static 'dist/images/logo.svg' %}" alt="Logo">
-            Trendmia
+{% block title %}Trending | TRENDMIA{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="fas fa-fire"></i> Trending Projects & Tags</h2>
+            <p class="text-muted">See what's popular in the TRENDMIA community</p>
         </div>
-    </div>    
-    <div class="container">
-        <div class="page-header">
-            <h1>See What's Trending:</h1>
-        </div>            
-        <div class="content-wrapper">
-            <!-- Display the tag counts table -->
-            <!-- <div class="tag-counts">
-                <h2>Latest Trend in Tags:</h2>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Tag</th>
-                            <th>Weighted Count</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for tag, count in tag_counts %}
-                        <tr>
-                            <td>{{ tag }}</td>
-                            <td>{{ count }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div> -->
+    </div>
 
-            <!-- Display the bar plot -->
-            <div class="bar-plot" id="plot"></div>
+    <!-- Tag Selection Form -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="mb-3">View Tag History</h5>
+            <form method="POST" class="d-flex gap-2">
+                {% csrf_token %}
+                <select name="tag_dropdown" id="tag_dropdown" class="form-select" style="flex: 1;">
+                    {% for tag, _ in tag_counts %}
+                    <option value="{{ tag }}">{{ tag }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-chart-line"></i> View History
+                </button>
+            </form>
         </div>
+    </div>
 
-        
-        
-        <!-- Predefined Tag History Plots -->
-        <div class="predefined-tag-history">
-            <h2>Predefined Tag History Plots:</h2>
-            <div class="past">
-                <div class="tag-history">
-                    <h3>History of "Data Science" Over Past Months:</h3>
-                    <div>
-                        <img src="{% static 'dist/images/tag_history_plot_data_science.png' %}"
-                        alt="Data Science Tag History Plot">
-                    </div>
-                </div>
+    <!-- Bar Chart -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="mb-3">Tag Popularity Chart</h5>
+            <div id="plot" style="width: 100%; height: 500px;"></div>
+        </div>
+    </div>
 
-                <div class="tag-history">
-                    <h3>History of "AI" Over Past Months:</h3>
-                    <div>
-                        <img src="{% static 'dist/images/tag_history_plot_ai.png' %}" alt="AI Tag History Plot">
-                    </div>
-                </div>
-            </div>
-            <div class="past">
-                
-                <div class="tag-history">
-                    <h3>History of "App Development" Over Past Months:</h3>
-                    <div>
-                        <img src="{% static 'dist/images/tag_history_plot_app_development.png' %}"
-                        alt="App Development Tag History Plot">
-                    </div>
-                </div>
-                <div class="tag-history">
-                    <h3>History of "AR/VR" Over Past Months:</h3>
-                    <div>
-                        <img src="{% static 'dist/images/tag_history_plot_ar_vr.png' %}"
-                            alt="App Development Tag History Plot">
-                    </div>
+    <!-- Selected Tag History -->
+    {% if selected_tag %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="mb-3">History of "{{ selected_tag }}" Over Past Months</h5>
+            <img src="{% static 'dist/images/tag_history_plot.png' %}" alt="Tag History Plot" class="img-fluid">
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Predefined Tag Histories -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <h4>Popular Tag Trends</h4>
+        </div>
+        <div class="col-md-6 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6>Data Science</h6>
+                    <img src="{% static 'dist/images/tag_history_plot_data_science.png' %}" alt="Data Science" class="img-fluid">
                 </div>
             </div>
         </div>
-
-    </div>
-
-    <!-- Script for plotting the bar graph -->
-    <!-- Form for selecting a tag -->
-    <div class="tag-selection-form">
-        <form method="POST">
-            {% csrf_token %}
-            <label for="tag_dropdown">Select Tag:</label>
-            <select name="tag_dropdown" id="tag_dropdown">
-                {% for tag, _ in tag_counts %}
-                <option value="{{ tag }}">{{ tag }}</option>
-                {% endfor %}
-            </select>
-            <input type="submit" value="Submit">
-        </form>
-    </div>
-    <!-- Display the selected tag history plot -->
-    <div class="tag-history">
-        {% if selected_tag %}
-        <h2>History of Tag "{{ selected_tag }}" Over Past Months:</h2>
-        <div>
-            <img src="{% static 'dist/images/tag_history_plot.png' %}" alt="Tag History Plot">
+        <div class="col-md-6 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6>AI</h6>
+                    <img src="{% static 'dist/images/tag_history_plot_ai.png' %}" alt="AI" class="img-fluid">
+                </div>
+            </div>
         </div>
-        {% endif %}
+        <div class="col-md-6 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6>App Development</h6>
+                    <img src="{% static 'dist/images/tag_history_plot_app_development.png' %}" alt="App Development" class="img-fluid">
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6>AR/VR</h6>
+                    <img src="{% static 'dist/images/tag_history_plot_ar_vr.png' %}" alt="AR/VR" class="img-fluid">
+                </div>
+            </div>
+        </div>
     </div>
-    <script>
-        // Extract tag names and counts from Django template variables
-        const tags = [{% for tag, count in tag_counts %}'{{ tag }}',{% endfor %}];
-        const counts = [{% for tag, count in tag_counts %}{{ count }},{% endfor %}];
-        
-        // Reverse the order of the arrays
-        tags.reverse();
-        counts.reverse();
+</div>
 
-        // Define custom colors based on a gradient color scale
-        const colors = counts.map(count => {
-            const maxCount = Math.max(...counts);
-            const minCount = Math.min(...counts);
-            const normalizedCount = (1.6*(count - minCount+0.5)) /((maxCount - minCount));
+<script>
+// Extract tag names and counts
+const tags = [{% for tag, count in tag_counts %}'{{ tag }}',{% endfor %}];
+const counts = [{% for tag, count in tag_counts %}{{ count }},{% endfor %}];
 
-            // Adjusting color towards red, then orange, then a touch of yellow
-            const red = Math.round(265 * (1 - normalizedCount) + 260);
-            const green = Math.round(100 * (1 - normalizedCount)+75);
-            const blue = Math.round(60 * (1 - normalizedCount));
-            return `rgb(${red}, ${green}, ${blue})`; // RGB color
-        });
-        
-        // Plot the bar graph
-        Plotly.newPlot('plot', [{
-            x: counts, // Use counts for the vertical bar lengths
-            y: tags,   // Use tags for the vertical bar labels
-            type: 'bar',
-            orientation: 'h', // Set orientation to horizontal
-            marker: {
-                color: colors
-            },
-            width: 0.6 // Adjust bar width
-        }], {
-            margin: {
-                l: 150, // Adjust left margin for longer y-axis labels
-                r: 50,
-                b: 50,
-                t: 50,
-                pad: 4
-            },
-            xaxis: {
-                title: 'Counts',
-                tickfont: {
-                    size: 12,
-                    color: '#ddd' // Light text color for axes
-                }
-            },
-            yaxis: {
-                tickfont: {
-                    size: 12,
-                    color: '#ddd' // Light text color for axes
-                }
-            },
-            title: 'Tag Counts',
-            titlefont: {
-                size: 16,
-                color: '#ddd' // Light title color
-            },
-            plot_bgcolor: '#222', // Dark background color
-            paper_bgcolor: '#222', // Plot area background color
-            grid: {
-                color: '#444' // Grid line color
-            }
-        });
-    </script>
+// Reverse for display
+tags.reverse();
+counts.reverse();
 
-</body>
-</html>
+// Create color gradient
+const maxCount = Math.max(...counts);
+const minCount = Math.min(...counts);
+const colors = counts.map(count => {
+    const normalized = (count - minCount) / (maxCount - minCount || 1);
+    const red = Math.round(10 + normalized * 245);
+    const green = Math.round(102 + normalized * 153);
+    const blue = Math.round(194);
+    return `rgb(${red}, ${green}, ${blue})`;
+});
+
+// Plot the bar graph
+Plotly.newPlot('plot', [{
+    x: counts,
+    y: tags,
+    type: 'bar',
+    orientation: 'h',
+    marker: { color: colors }
+}], {
+    margin: { l: 150, r: 50, b: 50, t: 50, pad: 4 },
+    xaxis: { title: 'Popularity Score' },
+    yaxis: { title: 'Tags' },
+    title: 'Trending Tags',
+    paper_bgcolor: 'transparent',
+    plot_bgcolor: 'transparent'
+});
+</script>
+{% endblock %}
