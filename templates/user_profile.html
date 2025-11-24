@@ -23,7 +23,13 @@
                     <p class="text-muted mb-0"><i class="fas fa-map-marker-alt"></i> {{ profile_user.location }}</p>
                     {% endif %}
                 </div>
-                {% if not is_own_profile and user.is_authenticated %}
+                {% if is_own_profile %}
+                <div class="col-auto">
+                    <a href="{% url 'edit_profile' %}" class="btn btn-primary">
+                        <i class="fas fa-edit"></i> Edit Profile
+                    </a>
+                </div>
+                {% elif user.is_authenticated %}
                 <div class="col-auto">
                     <button class="btn btn-primary me-2 follow-btn" data-username="{{ profile_user.username }}" data-following="{% if is_following %}true{% else %}false{% endif %}">
                         {% if is_following %}<i class="fas fa-user-minus"></i> Unfollow{% else %}<i class="fas fa-user-plus"></i> Follow{% endif %}

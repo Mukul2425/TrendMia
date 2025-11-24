@@ -202,6 +202,22 @@ def profile_view(request):
     
     return render(request, 'profile.html', context)
 
+@login_required
+def edit_profile(request):
+    """Edit user profile"""
+    if request.method == 'POST':
+        form = ProfileEditForm(request.POST, request.FILES, instance=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Profile updated successfully!")
+            return redirect('profile')
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = ProfileEditForm(instance=request.user)
+    
+    return render(request, 'profile_edit.html', {'form': form})
+
 def user_profile_view(request, username):
     """View another user's profile"""
     try:
@@ -690,12 +706,22 @@ def workspace_chat(request, project_id):
         if request.method == 'POST':
             message_text = request.POST.get('message', '').strip()
             if message_text:
-                WorkspaceChatMessage.objects.create(
+                message = WorkspaceChatMessage.objects.create(
                     workspace=workspace,
                     sender=request.user,
                     message=message_text
                 )
-                return JsonResponse({'success': True})
+                return JsonResponse({
+                    'success': True,
+                    'message': {
+                        'id': message.id,
+                        'text': message.message,
+                        'sender': message.sender.name,
+                        'sender_id': message.sender.id,
+                        'timestamp': message.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                        'timesince': message.timestamp.strftime('%b %d, %Y %I:%M %p')
+                    }
+                })
             return JsonResponse({'error': 'Message cannot be empty'}, status=400)
         
         messages = workspace.chat_messages.all().order_by('timestamp')
