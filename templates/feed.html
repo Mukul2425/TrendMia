@@ -95,7 +95,11 @@
                         <!-- Post Content -->
                         <div class="feed-post-content">
                             <h4 class="feed-post-title">
-                                <a href="{% url 'project_detail' post.id %}">{{ post.title }}</a>
+                                {% if user.is_authenticated %}
+                                    <a href="{% url 'project_detail' post.id %}">{{ post.title }}</a>
+                                {% else %}
+                                    <a href="{% url 'login' %}" onclick="return confirm('Please sign in to view project details')">{{ post.title }}</a>
+                                {% endif %}
                             </h4>
                             <p class="feed-post-description">{{ post.description|truncatechars:150 }}</p>
                             
@@ -156,10 +160,17 @@
                                 <span>{{ post.comments.count }}</span>
                             </span>
                             {% endif %}
-                            <a href="{% url 'project_detail' post.id %}" class="feed-action-btn feed-view-btn">
-                                <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                                View Project
-                            </a>
+                            {% if user.is_authenticated %}
+                                <a href="{% url 'project_detail' post.id %}" class="feed-action-btn feed-view-btn">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                    View Project
+                                </a>
+                            {% else %}
+                                <a href="{% url 'login' %}" class="feed-action-btn feed-view-btn" onclick="return confirm('Please sign in to view project details')">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                    View Project
+                                </a>
+                            {% endif %}
                         </div>
 
                         <!-- Quick Comment Section -->
@@ -186,6 +197,27 @@
                         {% endif %}
                     </article>
                 {% endfor %}
+                
+                <!-- Login Prompt for Non-Authenticated Users -->
+                {% if not user.is_authenticated %}
+                <div class="login-prompt-overlay">
+                    <div class="login-prompt-card">
+                        <div class="text-center mb-4">
+                            <i class="fas fa-lock fa-3x text-primary mb-3"></i>
+                            <h4 class="mb-2">Sign in to see more projects</h4>
+                            <p class="text-muted mb-0">Join thousands of builders sharing their projects</p>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'login' %}" class="btn btn-primary">
+                                <i class="fas fa-sign-in-alt me-2"></i>Sign in
+                            </a>
+                            <a href="{% url 'signup' %}" class="btn btn-outline-primary">
+                                <i class="fas fa-user-plus me-2"></i>Create account
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
             {% else %}
                 <div class="empty-state">
                     <i class="fa-solid fa-shuttle-space fs-1 text-primary mb-3"></i>

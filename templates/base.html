@@ -15,10 +15,13 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- Loading Page -->
-    <div id="loading-page" class="loading-container">
-        <div class="loading-spinner"></div>
-        <div class="loading-text">Loading TRENDMIA...</div>
+    <!-- Subtle Loading Screen -->
+    <div id="loading-page" class="loading-screen-subtle">
+        <div class="loading-content-subtle">
+            <h2 class="loading-brand-subtle">TRENDMIA</h2>
+            <div class="loading-spinner-subtle"></div>
+            <p class="loading-text-subtle">Loading...</p>
+        </div>
     </div>
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg">
@@ -168,15 +171,25 @@
     
     <!-- Dark Mode & Loading Script -->
     <script>
-        // Hide loading page when page loads
+        // Subtle loading screen handler
         window.addEventListener('load', function() {
-            setTimeout(function() {
-                document.getElementById('loading-page').style.opacity = '0';
+            const loadingScreen = document.getElementById('loading-page');
+            if (loadingScreen) {
                 setTimeout(function() {
-                    document.getElementById('loading-page').style.display = 'none';
-                }, 300);
-            }, 500);
+                    loadingScreen.style.opacity = '0';
+                    setTimeout(function() {
+                        loadingScreen.style.display = 'none';
+                    }, 300);
+                }, 500);
+            }
         });
+        
+        // Show loading spinner for AJAX requests
+        function showLoading(element) {
+            if (element) {
+                element.innerHTML = '<div class="loading-spinner"></div>';
+            }
+        }
 
         // Dark Mode Toggle
         const themeToggle = document.getElementById('theme-toggle');

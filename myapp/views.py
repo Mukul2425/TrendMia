@@ -307,7 +307,8 @@ def feed(request):
                 ordered_posts.append(project)
         posts = ordered_posts
     else:
-        posts = list(projects_qs)
+        # Limit to 2 posts for non-authenticated users
+        posts = list(projects_qs[:2])
     
     if request.user.is_authenticated:
         following_set = set(request.user.following.values_list('following_id', flat=True))
@@ -1051,6 +1052,11 @@ def project_detail(request, project_id):
     """Detailed project view"""
     try:
         project = Project.objects.get(id=project_id)
+        
+        # Require login to view project details
+        if not request.user.is_authenticated:
+            messages.info(request, "Please sign in to view project details")
+            return redirect('login')
         
         # Check visibility
         if project.visibility == 'private':

@@ -1,189 +1,478 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Trendmia · Build the future{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Landing Page Styles - GitHub Inspired */
+    .landing-hero {
+        min-height: 90vh;
+        display: flex;
+        align-items: center;
+        padding: 6rem 0;
+        background: linear-gradient(180deg, var(--bg-color) 0%, transparent 100%);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .landing-hero::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: radial-gradient(circle at 20% 50%, rgba(88, 166, 255, 0.1) 0%, transparent 50%),
+                    radial-gradient(circle at 80% 80%, rgba(188, 140, 255, 0.1) 0%, transparent 50%);
+        pointer-events: none;
+    }
+    
+    .hero-content {
+        position: relative;
+        z-index: 1;
+    }
+    
+    .hero-badge {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        background: rgba(88, 166, 255, 0.1);
+        border: 1px solid rgba(88, 166, 255, 0.2);
+        border-radius: 20px;
+        color: var(--primary-color);
+        font-size: 0.85rem;
+        font-weight: 500;
+        margin-bottom: 2rem;
+        letter-spacing: 0.05em;
+    }
+    
+    .hero-title {
+        font-size: clamp(2.5rem, 5vw, 4rem);
+        font-weight: 700;
+        line-height: 1.1;
+        margin-bottom: 1.5rem;
+        background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .hero-description {
+        font-size: 1.25rem;
+        color: var(--text-secondary);
+        line-height: 1.6;
+        margin-bottom: 2.5rem;
+        max-width: 600px;
+    }
+    
+    .hero-actions {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-bottom: 4rem;
+    }
+    
+    .hero-stats {
+        display: flex;
+        gap: 3rem;
+        flex-wrap: wrap;
+    }
+    
+    .stat-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+    
+    .stat-label {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+    }
+    
+    /* Feature Sections with Edge Highlighting */
+    .feature-section {
+        padding: 6rem 0;
+        position: relative;
+    }
+    
+    .feature-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 2.5rem;
+        height: 100%;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .feature-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border: 2px solid transparent;
+        border-radius: 12px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+    }
+    
+    .feature-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+        border-color: var(--primary-color);
+    }
+    
+    .feature-card:hover::before {
+        opacity: 1;
+        border-color: var(--primary-color);
+        animation: borderGlow 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes borderGlow {
+        0%, 100% {
+            box-shadow: 0 0 0 0 rgba(88, 166, 255, 0.4);
+        }
+        50% {
+            box-shadow: 0 0 0 4px rgba(88, 166, 255, 0.1);
+        }
+    }
+    
+    .feature-icon {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(88, 166, 255, 0.1);
+        border-radius: 10px;
+        color: var(--primary-color);
+        font-size: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .feature-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: var(--text-primary);
+    }
+    
+    .feature-description {
+        color: var(--text-secondary);
+        line-height: 1.6;
+        margin-bottom: 1.5rem;
+    }
+    
+    .feature-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .feature-list li {
+        padding: 0.5rem 0;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .feature-list li i {
+        color: var(--success-color);
+        font-size: 0.875rem;
+    }
+    
+    /* CTA Section */
+    .cta-section {
+        padding: 6rem 0;
+        background: var(--card-bg);
+        border-top: 1px solid var(--border-color);
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .cta-card {
+        background: var(--bg-color);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 3rem;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .cta-card::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(88, 166, 255, 0.05) 0%, transparent 70%);
+        animation: rotate 20s linear infinite;
+        pointer-events: none;
+    }
+    
+    @keyframes rotate {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    
+    /* Form Panel */
+    .form-panel {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 2.5rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        position: sticky;
+        top: 100px;
+    }
+    
+    .form-panel-header {
+        margin-bottom: 2rem;
+    }
+    
+    .form-panel-badge {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        letter-spacing: 0.05em;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-panel-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    
+    .security-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.25rem 0.75rem;
+        background: rgba(88, 166, 255, 0.1);
+        border: 1px solid rgba(88, 166, 255, 0.2);
+        border-radius: 6px;
+        font-size: 0.75rem;
+        color: var(--primary-color);
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .landing-hero {
+            padding: 3rem 0;
+        }
+        
+        .hero-stats {
+            gap: 2rem;
+        }
+        
+        .feature-section {
+            padding: 3rem 0;
+        }
+        
+        .form-panel {
+            position: static;
+            margin-top: 2rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<section class="hero-section text-center text-lg-start">
-    <div class="row align-items-center g-4">
-        <div class="col-lg-7">
-            <p class="text-uppercase text-muted fw-semibold mb-2">Builders · Researchers · Hackers</p>
-            <h1 class="display-5 fw-bold mb-3">
-                The collaborative operating system for ambitious projects.
-            </h1>
-            <p class="lead text-secondary mb-4 pe-lg-5">
-                Trendmia unites GitHub-style project posts, Notion-grade workspaces, LinkedIn-quality profiles, and
-                AI copilots into one social platform built entirely for people who ship ideas.
-            </p>
-            <div class="d-flex flex-wrap gap-3">
-                <a href="{% url 'signup' %}" class="btn btn-primary btn-lg">
-                    Start building
-                </a>
-                <a href="{% url 'feed' %}" class="btn btn-outline-light text-white border-0">
-                    Browse live projects
-                </a>
-            </div>
-            <div class="row g-3 mt-4">
-                <div class="col-md-4">
-                    <div class="stat-pill">
-                        <div>
-                            <span class="label">Active builders</span>
-                            <span class="value">8,400+</span>
-                        </div>
-                        <i class="fa-solid fa-circle-user text-primary"></i>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="stat-pill">
-                        <div>
-                            <span class="label">Projects shipped</span>
-                            <span class="value">3,100+</span>
-                        </div>
-                        <i class="fa-solid fa-cubes-stacked text-success"></i>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="stat-pill">
-                        <div>
-                            <span class="label">Collaborations</span>
-                            <span class="value">15k+</span>
-                        </div>
-                        <i class="fa-solid fa-handshake text-warning"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-5">
-            <div class="form-panel">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <div>
-                        <p class="text-uppercase text-muted small mb-1">Get started free</p>
-                        <h4 class="fw-bold mb-0">Create your builder profile</h4>
-                    </div>
-                    <span class="badge bg-light text-dark">
-                        <i class="fa-solid fa-lock"></i> secure
-                    </span>
-                </div>
-                <form method="POST" action="{% url 'signup' %}">
-                    {% csrf_token %}
-                    {% for field in form %}
-                        <div class="mb-3">
-                            <label class="form-label text-muted small">{{ field.label }}</label>
-                            {{ field }}
-                            {% if field.help_text %}
-                                <small class="text-muted">{{ field.help_text }}</small>
-                            {% endif %}
-                            {% for error in field.errors %}
-                                <div class="text-danger small">{{ error }}</div>
-                            {% endfor %}
-                        </div>
-                    {% endfor %}
-                    <button type="submit" class="btn btn-primary w-100">
-                        Join Trendmia
-                    </button>
-                </form>
-                <p class="text-center text-muted small mt-3 mb-0">
-                    Already building here? <a href="{% url 'login' %}">Log in</a>
-                </p>
-            </div>
-        </div>
-    </div>
-</section>
-
-<section class="mt-5">
-    <div class="row g-4">
-        <div class="col-md-4">
-            <div class="project-card h-100">
-                <div class="d-flex align-items-center gap-2 mb-3">
-                    <span class="badge-soft"><i class="fa-solid fa-rocket"></i> Launch</span>
-                    <span class="text-muted small">Step 01</span>
-                </div>
-                <h4>Post project stories</h4>
-                <p class="text-secondary">
-                    Publish ideas with rich media, domain tags, required skills, and stage indicators directly to the global feed.
-                </p>
-                <ul class="list-unstyled text-muted small mb-0">
-                    <li><i class="fa-solid fa-circle-check text-success me-2"></i> AI project starter kit</li>
-                    <li><i class="fa-solid fa-circle-check text-success me-2"></i> Location & domain feeds</li>
-                    <li><i class="fa-solid fa-circle-check text-success me-2"></i> Visibility controls</li>
-                </ul>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="project-card h-100">
-                <div class="d-flex align-items-center gap-2 mb-3">
-                    <span class="badge-soft"><i class="fa-solid fa-people-group"></i> Collaborate</span>
-                    <span class="text-muted small">Step 02</span>
-                </div>
-                <h4>Find your dream team</h4>
-                <p class="text-secondary">
-                    Collaborator requests include skills, intent, and preferred roles. Accepting auto-spins up private workspaces.
-                </p>
-                <ul class="list-unstyled text-muted small mb-0">
-                    <li><i class="fa-solid fa-circle-check text-success me-2"></i> AI collaborator matching</li>
-                    <li><i class="fa-solid fa-circle-check text-success me-2"></i> Role-aware invites</li>
-                    <li><i class="fa-solid fa-circle-check text-success me-2"></i> Reputation & badges</li>
-                </ul>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="project-card h-100">
-                <div class="d-flex align-items-center gap-2 mb-3">
-                    <span class="badge-soft"><i class="fa-solid fa-layer-group"></i> Build</span>
-                    <span class="text-muted small">Step 03</span>
-                </div>
-                <h4>Work like a pro team</h4>
-                <p class="text-secondary">
-                    Each workspace includes Kanban boards, notes, chat, file vaults, and milestone timelines powered by AI nudges.
-                </p>
-                <ul class="list-unstyled text-muted small mb-0">
-                    <li><i class="fa-solid fa-circle-check text-success me-2"></i> Task automation</li>
-                    <li><i class="fa-solid fa-circle-check text-success me-2"></i> Real-time chat & updates</li>
-                    <li><i class="fa-solid fa-circle-check text-success me-2"></i> Meeting notes & files</li>
-                </ul>
-            </div>
-        </div>
-    </div>
-</section>
-
-<section class="mt-5">
-    <div class="project-card">
+<!-- Hero Section -->
+<section class="landing-hero">
+    <div class="container">
         <div class="row align-items-center">
-            <div class="col-lg-6">
-                <h3 class="fw-bold mb-2">Feeds tuned for exactly what you care about.</h3>
-                <p class="text-secondary mb-4">
-                    Filter by collaborators, domains, college networks, project stages, or your local ecosystem. Trendmia makes signal your default feed.
+            <div class="col-lg-7 hero-content">
+                <span class="hero-badge">
+                    <i class="fas fa-rocket me-2"></i>Builders · Researchers · Hackers
+                </span>
+                <h1 class="hero-title">
+                    The collaborative operating system for ambitious projects.
+                </h1>
+                <p class="hero-description">
+                    Unite GitHub-style project posts, Notion-grade workspaces, LinkedIn-quality profiles, and AI copilots into one social platform.
                 </p>
-                <div class="d-flex flex-wrap gap-2 mb-4">
-                    <span class="feed-filter-pill active"><i class="fa-solid fa-wifi me-2"></i> Global feed</span>
-                    <span class="feed-filter-pill"><i class="fa-solid fa-user-group me-2"></i> Collaborators</span>
-                    <span class="feed-filter-pill"><i class="fa-solid fa-flask me-2"></i> Research</span>
-                    <span class="feed-filter-pill"><i class="fa-solid fa-map-pin me-2"></i> Near me</span>
+                <div class="hero-actions">
+                    <a href="{% url 'signup' %}" class="btn btn-primary btn-lg px-4">
+                        Start building
+                    </a>
+                    <a href="{% url 'feed' %}" class="btn btn-outline-secondary btn-lg px-4">
+                        Browse projects
+                    </a>
                 </div>
-                <a href="{% url 'enhanced_feed' %}" class="btn btn-primary">
-                    Explore the smart feed
-                </a>
-            </div>
-            <div class="col-lg-6">
-                <div class="workspace-card">
-                    <h6 class="text-uppercase text-muted small mb-3">Live signal</h6>
-                    <div class="d-flex align-items-center justify-content-between mb-3">
-                        <div>
-                            <p class="mb-0 text-muted">Trending domain</p>
-                            <h5 class="mb-0">Autonomous Systems</h5>
-                        </div>
-                        <span class="badge bg-success-subtle text-success">+38% week over week</span>
+                <div class="hero-stats">
+                    <div class="stat-item">
+                        <span class="stat-value">8,400+</span>
+                        <span class="stat-label">Active builders</span>
                     </div>
-                    <div class="timeline">
-                        <div class="timeline-item">
-                            <h6 class="mb-1">Robotics Vision Stack</h6>
-                            <p class="text-muted small mb-0">Looking for C++ mentors · Bengaluru</p>
+                    <div class="stat-item">
+                        <span class="stat-value">3,100+</span>
+                        <span class="stat-label">Projects shipped</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value">15k+</span>
+                        <span class="stat-label">Collaborations</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="form-panel">
+                    <div class="form-panel-header">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <p class="form-panel-badge mb-1">Get started free</p>
+                                <h4 class="form-panel-title mb-0">Create your builder profile</h4>
+                            </div>
+                            <span class="security-badge">
+                                <i class="fas fa-lock"></i> secure
+                            </span>
                         </div>
-                        <div class="timeline-item">
-                            <h6 class="mb-1">BioSignal Diagnostics</h6>
-                            <p class="text-muted small mb-0">Clinical AI · Remote · Hiring 3</p>
+                    </div>
+                    <form method="POST" action="{% url 'signup' %}">
+                        {% csrf_token %}
+                        {% for field in form %}
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.help_text %}
+                                    <small class="text-muted">{{ field.help_text }}</small>
+                                {% endif %}
+                                {% for error in field.errors %}
+                                    <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endfor %}
+                        <button type="submit" class="btn btn-primary w-100">
+                            Join Trendmia
+                        </button>
+                    </form>
+                    <p class="text-center text-muted small mt-3 mb-0">
+                        Already building here? <a href="{% url 'login' %}">Log in</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="feature-section">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-rocket"></i>
+                    </div>
+                    <h4 class="feature-title">Post project stories</h4>
+                    <p class="feature-description">
+                        Publish ideas with rich media, domain tags, and required skills directly to the global feed.
+                    </p>
+                    <ul class="feature-list">
+                        <li><i class="fas fa-check-circle"></i> AI project starter kit</li>
+                        <li><i class="fas fa-check-circle"></i> Location & domain feeds</li>
+                        <li><i class="fas fa-check-circle"></i> Visibility controls</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-people-group"></i>
+                    </div>
+                    <h4 class="feature-title">Find your dream team</h4>
+                    <p class="feature-description">
+                        Collaborator requests include skills, intent, and preferred roles. Accepting auto-spins up private workspaces.
+                    </p>
+                    <ul class="feature-list">
+                        <li><i class="fas fa-check-circle"></i> AI collaborator matching</li>
+                        <li><i class="fas fa-check-circle"></i> Role-aware invites</li>
+                        <li><i class="fas fa-check-circle"></i> Reputation & badges</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <h4 class="feature-title">Work like a pro team</h4>
+                    <p class="feature-description">
+                        Each workspace includes Kanban boards, notes, chat, file vaults, and milestone timelines powered by AI.
+                    </p>
+                    <ul class="feature-list">
+                        <li><i class="fas fa-check-circle"></i> Task automation</li>
+                        <li><i class="fas fa-check-circle"></i> Real-time chat & updates</li>
+                        <li><i class="fas fa-check-circle"></i> Meeting notes & files</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta-section">
+    <div class="container">
+        <div class="cta-card">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <h3 class="fw-bold mb-3">Feeds tuned for exactly what you care about.</h3>
+                    <p class="text-secondary mb-4">
+                        Filter by collaborators, domains, college networks, project stages, or your local ecosystem.
+                    </p>
+                    <div class="d-flex flex-wrap gap-2 mb-4">
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                            <i class="fas fa-wifi me-1"></i> Global feed
+                        </span>
+                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                            <i class="fas fa-user-group me-1"></i> Collaborators
+                        </span>
+                        <span class="badge bg-info-subtle text-info border border-info-subtle">
+                            <i class="fas fa-flask me-1"></i> Research
+                        </span>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle">
+                            <i class="fas fa-map-pin me-1"></i> Near me
+                        </span>
+                    </div>
+                    <a href="{% url 'enhanced_feed' %}" class="btn btn-primary">
+                        Explore the smart feed
+                    </a>
+                </div>
+                <div class="col-lg-6">
+                    <div class="workspace-card mt-4 mt-lg-0">
+                        <h6 class="text-uppercase text-muted small mb-3">Live signal</h6>
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <div>
+                                <p class="mb-0 text-muted small">Trending domain</p>
+                                <h5 class="mb-0">Autonomous Systems</h5>
+                            </div>
+                            <span class="badge bg-success-subtle text-success">+38% week over week</span>
                         </div>
-                        <div class="timeline-item mb-0">
-                            <h6 class="mb-1">Campus Satellite Lab</h6>
-                            <p class="text-muted small mb-0">IIT Delhi community drop · 12 spots</p>
+                        <div class="timeline">
+                            <div class="timeline-item">
+                                <h6 class="mb-1">Robotics Vision Stack</h6>
+                                <p class="text-muted small mb-0">Looking for C++ mentors · Bengaluru</p>
+                            </div>
+                            <div class="timeline-item">
+                                <h6 class="mb-1">BioSignal Diagnostics</h6>
+                                <p class="text-muted small mb-0">Clinical AI · Remote · Hiring 3</p>
+                            </div>
+                            <div class="timeline-item mb-0">
+                                <h6 class="mb-1">Campus Satellite Lab</h6>
+                                <p class="text-muted small mb-0">IIT Delhi community drop · 12 spots</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -191,5 +480,4 @@
         </div>
     </div>
 </section>
-
 {% endblock %}
