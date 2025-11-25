@@ -8,7 +8,6 @@
             <img src="{% if user.avatar %}{{ user.avatar.url }}{% else %}https://ui-avatars.com/api/?name={{ user.name }}&background=8b5cf6&color=fff{% endif %}" class="avatar-lg" alt="{{ user.name }}">
             <div>
                 <h2 class="mb-1">{{ user.name }}</h2>
-                <p class="text-muted mb-2">@{{ user.username }}</p>
                 <div class="d-flex flex-wrap gap-2 text-muted small">
                     {% if user.location %}<span><i class="fa-solid fa-location-dot me-1"></i>{{ user.location }}</span>{% endif %}
                     {% if user.college %}<span><i class="fa-solid fa-building-columns me-1"></i>{{ user.college }}</span>{% endif %}
@@ -201,7 +200,6 @@
                     <div class="profile-metric mt-3">
                         <div>
                             <strong>{{ follower.name }}</strong>
-                            <p class="text-muted small mb-0">@{{ follower.username }}</p>
                         </div>
                         <a href="{% url 'user_profile' follower.username %}" class="text-muted small">View</a>
                     </div>
@@ -215,7 +213,6 @@
                     <div class="profile-metric mt-3">
                         <div>
                             <strong>{{ followee.name }}</strong>
-                            <p class="text-muted small mb-0">@{{ followee.username }}</p>
                         </div>
                         <a href="{% url 'user_profile' followee.username %}" class="text-muted small">View</a>
                     </div>

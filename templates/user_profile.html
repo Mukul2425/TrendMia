@@ -15,7 +15,6 @@
                 </div>
                 <div class="col">
                     <h2 class="mb-1">{{ profile_user.name }}</h2>
-                    <p class="text-muted mb-1">@{{ profile_user.username }}</p>
                     {% if profile_user.bio %}
                     <p class="mb-2">{{ profile_user.bio }}</p>
                     {% endif %}
@@ -132,7 +131,6 @@
                                  class="avatar me-3" alt="{{ follower.name }}">
                             <div class="flex-grow-1">
                                 <h6 class="mb-0">{{ follower.name }}</h6>
-                                <small class="text-muted">@{{ follower.username }}</small>
                             </div>
                             <a href="{% url 'user_profile' follower.username %}" class="btn btn-sm btn-secondary">View</a>
                         </div>
@@ -161,7 +159,6 @@
                                  class="avatar me-3" alt="{{ following_user.name }}">
                             <div class="flex-grow-1">
                                 <h6 class="mb-0">{{ following_user.name }}</h6>
-                                <small class="text-muted">@{{ following_user.username }}</small>
                             </div>
                             <a href="{% url 'user_profile' following_user.username %}" class="btn btn-sm btn-secondary">View</a>
                         </div>

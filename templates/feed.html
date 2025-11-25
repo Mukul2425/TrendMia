@@ -70,7 +70,6 @@
                                 <div class="flex-grow-1">
                                     <div class="d-flex align-items-center gap-2">
                                         <a href="{% url 'user_profile' post.user.username %}" class="feed-username">{{ post.user.name }}</a>
-                                        <span class="feed-handle">@{{ post.user.username }}</span>
                                         <span class="feed-time">· {{ post.created_at|timesince }} ago</span>
                                     </div>
                                     {% if post.stage %}
@@ -207,7 +206,6 @@
                     <img src="{% if user.avatar %}{{ user.avatar.url }}{% else %}https://ui-avatars.com/api/?name={{ user.name }}&background=0a66c2&color=fff{% endif %}" class="feed-avatar" alt="{{ user.name }}">
                     <div>
                         <strong>{{ user.name }}</strong>
-                        <p class="text-muted small mb-0">@{{ user.username }}</p>
                     </div>
                 </div>
                 <a href="{% url 'post_project' %}" class="btn btn-primary w-100 btn-sm mb-2">
