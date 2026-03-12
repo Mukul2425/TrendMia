@@ -91,20 +91,31 @@ def _cosine_similarity(vec_a, vec_b):
     return dot / (norm_a * norm_b)
 
 
-def _get_embedding(text):
-    """Best-effort embedding fetch; returns None when unavailable."""
-    api_key = os.getenv("OPENAI_API_KEY", "").strip()
-    if not api_key or not text:
+def _get_gemini_client():
+    """Return a configured google-genai client or None."""
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if not api_key:
         return None
     try:
-        from openai import OpenAI
+        from google import genai
+        return genai.Client(api_key=api_key)
+    except Exception:
+        return None
 
-        client = OpenAI(api_key=api_key)
-        result = client.embeddings.create(
-            model="text-embedding-3-small",
-            input=text,
+
+def _get_embedding(text):
+    """Best-effort embedding via Gemini text-embedding-004; returns None when unavailable."""
+    if not text:
+        return None
+    client = _get_gemini_client()
+    if not client:
+        return None
+    try:
+        result = client.models.embed_content(
+            model="text-embedding-004",
+            contents=text,
         )
-        return result.data[0].embedding
+        return list(result.embeddings[0].values)
     except Exception:
         return None
 
@@ -559,24 +570,31 @@ def _heuristic_copilot_output(idea, domain, skills_required, constraints):
     }
 
 
+def _extract_json(raw):
+    """Strip markdown code fences if present and parse JSON."""
+    raw = (raw or "").strip()
+    if raw.startswith("```"):
+        lines = raw.splitlines()
+        raw = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
+    return json.loads(raw)
+
+
 def generate_project_copilot_brief(idea, domain="", skills_required=None, constraints=""):
     """
     Generate a structured project brief from a rough idea.
-    Uses an LLM when OPENAI_API_KEY is available, otherwise deterministic fallback.
+    Uses Gemini 2.5 Flash when GEMINI_API_KEY is available, otherwise deterministic fallback.
     """
     skills_required = skills_required or []
     cleaned_skills = [s.strip() for s in skills_required if s and s.strip()]
 
-    api_key = os.getenv("OPENAI_API_KEY", "").strip()
-    if not api_key:
+    client = _get_gemini_client()
+    if not client:
         return _heuristic_copilot_output(idea, domain, cleaned_skills, constraints)
 
     try:
-        from openai import OpenAI
+        from google.genai import types
 
-        client = OpenAI(api_key=api_key)
-        prompt = f"""
-You are an expert startup and product advisor.
+        prompt = f"""You are an expert startup and product advisor.
 Convert the following rough project idea into a structured JSON object.
 
 Input:
@@ -585,7 +603,7 @@ Input:
 - Skills provided by user: {cleaned_skills}
 - Constraints: {constraints}
 
-Return ONLY valid JSON with this exact top-level schema:
+Return ONLY valid JSON (no markdown fences) with this exact top-level schema:
 {{
   "title": string,
   "one_liner": string,
@@ -600,22 +618,21 @@ Return ONLY valid JSON with this exact top-level schema:
   "constraints": string
 }}
 
-Keep output concise, practical, and implementation-oriented.
-""".strip()
+Keep output concise, practical, and implementation-oriented."""
 
-        response = client.responses.create(
-            model="gpt-4.1-mini",
-            input=prompt,
-            temperature=0.2,
-            max_output_tokens=1800,
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.2,
+                max_output_tokens=1800,
+            ),
         )
 
-        raw = (response.output_text or "").strip()
-        parsed = json.loads(raw)
-        parsed["source"] = "llm"
+        parsed = _extract_json(response.text)
+        parsed["source"] = "gemini"
         return parsed
     except Exception:
-        # Fail safely to deterministic output if LLM call/parsing fails.
         return _heuristic_copilot_output(idea, domain, cleaned_skills, constraints)
 
 
@@ -738,29 +755,26 @@ def _heuristic_pm_report(ctx):
 def generate_workspace_pm_report(workspace):
     """
     Generate an AI PM standup report for a workspace.
-    Uses LLM when OPENAI_API_KEY is set, deterministic fallback otherwise.
+    Uses Gemini 2.5 Flash when GEMINI_API_KEY is set, deterministic fallback otherwise.
     """
     ctx = _build_workspace_context(workspace)
 
-    api_key = os.getenv("OPENAI_API_KEY", "").strip()
-    if not api_key:
+    client = _get_gemini_client()
+    if not client:
         return _heuristic_pm_report(ctx)
 
     try:
-        from openai import OpenAI
-
-        client = OpenAI(api_key=api_key)
+        from google.genai import types
 
         ctx_json = json.dumps(ctx, default=str, indent=2)
-        prompt = f"""
-You are an expert AI project manager assistant.
+        prompt = f"""You are an expert AI project manager assistant.
 Given the following workspace context for the project "{ctx['project_title']}",
 generate a daily standup report as a JSON object.
 
 Context:
 {ctx_json}
 
-Return ONLY valid JSON with this schema:
+Return ONLY valid JSON (no markdown fences) with this schema:
 {{
   "project": string,
   "summary": string,
@@ -770,22 +784,22 @@ Return ONLY valid JSON with this schema:
   "next_actions": string[],
   "upcoming_milestones": string[],
   "suggested_focus": string,
-  "source": "llm"
+  "source": "gemini"
 }}
 
-Be concrete, concise, and name owners where available.
-""".strip()
+Be concrete, concise, and name owners where available."""
 
-        response = client.responses.create(
-            model="gpt-4.1-mini",
-            input=prompt,
-            temperature=0.2,
-            max_output_tokens=1200,
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.2,
+                max_output_tokens=1200,
+            ),
         )
 
-        raw = (response.output_text or "").strip()
-        parsed = json.loads(raw)
-        parsed["source"] = "llm"
+        parsed = _extract_json(response.text)
+        parsed["source"] = "gemini"
         return parsed
     except Exception:
         return _heuristic_pm_report(ctx)
