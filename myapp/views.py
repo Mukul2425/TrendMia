@@ -32,7 +32,8 @@ from .forms import (
 )
 from .ai_utils import (
     find_collaborator_matches, get_ai_project_recommendations,
-    generate_project_starter_kit, suggest_next_steps, generate_project_copilot_brief
+    generate_project_starter_kit, suggest_next_steps, generate_project_copilot_brief,
+    get_hybrid_feed_projects
 )
 from django.db.models import Q, Count
 from django.core.paginator import Paginator  
@@ -940,13 +941,23 @@ def enhanced_feed(request):
             Q(problem_statement__icontains=search_query)
         )
     
-    # Get AI recommendations if user is authenticated
+    # Hybrid retrieval + reranking for the default authenticated stream.
     ai_recommendations = []
+    feed_items = projects
     if request.user.is_authenticated and feed_type == 'all':
-        ai_recommendations = get_ai_project_recommendations(request.user, limit=5)
-    
+        ranked_projects = get_hybrid_feed_projects(request.user, base_queryset=projects, limit=120)
+        feed_items = ranked_projects
+        ai_recommendations = [
+            {
+                'project': p,
+                'score': getattr(p, 'ai_feed_score', 0),
+                'reasons': getattr(p, 'ai_feed_reasons', []),
+            }
+            for p in ranked_projects[:5]
+        ]
+
     # Pagination
-    paginator = Paginator(projects, 20)
+    paginator = Paginator(feed_items, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     

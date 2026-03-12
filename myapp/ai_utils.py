@@ -9,6 +9,7 @@ AI utility functions for TRENDMIA
 
 from .models import Project, CustomUser, CollaborationRequest, ProjectMember, Domain, Tag
 from django.db.models import Q, Count
+from django.utils import timezone
 from collections import Counter
 import os
 import json
@@ -271,6 +272,107 @@ def get_ai_project_recommendations(user, limit=10):
     
     scored_projects.sort(key=lambda x: x['score'], reverse=True)
     return scored_projects[:limit]
+
+
+def get_hybrid_feed_projects(user, base_queryset=None, limit=60):
+    """
+    Two-stage feed ranking:
+    1) Candidate retrieval from follows, domain affinity, collaboration context, and trending.
+    2) Deterministic reranking with affinity, semantic overlap, recency, and popularity.
+    """
+    if not user or not getattr(user, 'is_authenticated', False):
+        projects = (base_queryset or Project.objects.filter(visibility='public').order_by('-created_at'))[:limit]
+        return list(projects)
+
+    base_qs = base_queryset or Project.objects.filter(visibility='public').order_by('-created_at')
+    followed_user_ids = set(user.following.values_list('following_id', flat=True))
+    user_projects = Project.objects.filter(user=user).prefetch_related('tags')
+    user_project_ids = set(user_projects.values_list('id', flat=True))
+    collaborated_project_ids = set(ProjectMember.objects.filter(user=user).values_list('project_id', flat=True))
+
+    user_domain_ids = set(user_projects.exclude(domain__isnull=True).values_list('domain_id', flat=True))
+    user_tags = set()
+    for p in user_projects:
+        user_tags.update([t.name.lower() for t in p.tags.all()])
+
+    # Candidate retrieval buckets
+    candidates_following = base_qs.filter(user_id__in=followed_user_ids)[:120]
+    candidates_domain = base_qs.filter(domain_id__in=user_domain_ids)[:120] if user_domain_ids else base_qs.none()
+    candidates_collab_stage = base_qs.filter(stage='seeking_collaborators')[:120]
+    candidates_trending = base_qs.order_by('-likes_count', '-views_count')[:120]
+    candidates_recent = base_qs[:120]
+
+    candidate_map = {}
+    for bucket in [candidates_following, candidates_domain, candidates_collab_stage, candidates_trending, candidates_recent]:
+        for project in bucket:
+            if project.id in user_project_ids:
+                continue
+            candidate_map[project.id] = project
+
+    candidates = list(candidate_map.values())
+    if not candidates:
+        return []
+
+    user_profile_text = " ".join([
+        user.bio or "",
+        user.location or "",
+        " ".join(sorted(user_tags)),
+        " ".join(user_projects.values_list('title', flat=True)[:10]),
+    ]).strip()
+
+    scored = []
+    now = timezone.now()
+    for project in candidates:
+        project_tags = set(tag.name.lower() for tag in project.tags.all())
+        project_skills = set(s.lower() for s in (project.skills_required or []) if isinstance(s, str))
+        tag_overlap = len(user_tags & (project_tags | project_skills))
+        union_size = len(user_tags | project_tags | project_skills) or 1
+        tag_score = tag_overlap / union_size
+
+        project_text = " ".join([
+            project.title or "",
+            project.description or "",
+            project.problem_statement or "",
+            " ".join(project.skills_required or []),
+        ]).strip()
+        semantic_score = _token_jaccard_similarity(user_profile_text, project_text)
+
+        age_days = max((now - project.created_at).days, 0)
+        recency_score = 1.0 / (1.0 + (age_days / 7.0))
+        popularity_score = min((project.likes_count * 2 + project.views_count) / 200.0, 1.0)
+
+        follow_score = 1.0 if project.user_id in followed_user_ids else 0.0
+        domain_score = 1.0 if project.domain_id and project.domain_id in user_domain_ids else 0.0
+        collab_context_score = 1.0 if project.id in collaborated_project_ids else 0.0
+
+        final_score = (
+            follow_score * 0.30 +
+            tag_score * 0.24 +
+            domain_score * 0.12 +
+            semantic_score * 0.16 +
+            recency_score * 0.12 +
+            popularity_score * 0.04 +
+            collab_context_score * 0.02
+        )
+
+        reasons = []
+        if follow_score:
+            reasons.append("From creators you follow")
+        if tag_score > 0.15:
+            reasons.append("Skill/tag overlap")
+        if domain_score:
+            reasons.append("Matches your domain history")
+        if semantic_score > 0.15:
+            reasons.append("Text relevance to your profile")
+        if not reasons:
+            reasons.append("High recent engagement")
+
+        project.ai_feed_score = round(final_score, 4)
+        project.ai_feed_reasons = reasons[:3]
+        scored.append(project)
+
+    scored.sort(key=lambda p: p.ai_feed_score, reverse=True)
+    return scored[:limit]
 
 
 def generate_project_starter_kit(project_data):
