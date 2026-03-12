@@ -33,7 +33,7 @@ from .forms import (
 from .ai_utils import (
     find_collaborator_matches, get_ai_project_recommendations,
     generate_project_starter_kit, suggest_next_steps, generate_project_copilot_brief,
-    get_hybrid_feed_projects
+    get_hybrid_feed_projects, generate_workspace_pm_report
 )
 from django.db.models import Q, Count
 from django.core.paginator import Paginator  
@@ -1300,4 +1300,29 @@ def ai_project_copilot(request):
 
     domains = Domain.objects.all()
     return render(request, 'ai/project_copilot.html', {'domains': domains})
+
+
+@login_required
+def workspace_ai_pm(request, project_id):
+    """AI PM standup report for a workspace."""
+    try:
+        project = Project.objects.get(id=project_id)
+        is_member = ProjectMember.objects.filter(project=project, user=request.user).exists()
+        is_owner = project.user == request.user
+        if not (is_member or is_owner):
+            messages.error(request, "You don't have access to this workspace")
+            return redirect('feed')
+
+        workspace, _ = Workspace.objects.get_or_create(project=project)
+        report = generate_workspace_pm_report(workspace)
+
+        return render(request, 'workspace/ai_pm.html', {
+            'project': project,
+            'workspace': workspace,
+            'report': report,
+            'is_owner': is_owner,
+        })
+    except Project.DoesNotExist:
+        messages.error(request, 'Project not found')
+        return redirect('feed')
 

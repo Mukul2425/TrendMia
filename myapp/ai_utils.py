@@ -619,6 +619,176 @@ Keep output concise, practical, and implementation-oriented.
         return _heuristic_copilot_output(idea, domain, cleaned_skills, constraints)
 
 
+# ==================== WORKSPACE AI PM ====================
+
+def _build_workspace_context(workspace):
+    """Collect raw workspace signals into a plain dict for PM report."""
+    from django.utils import timezone
+    from datetime import timedelta
+
+    now = timezone.now()
+    window_start = now - timedelta(hours=48)
+
+    tasks = list(workspace.tasks.select_related('assigned_to').all())
+    milestones = list(workspace.milestones.all())
+    recent_messages = list(
+        workspace.chat_messages.filter(timestamp__gte=window_start)
+        .select_related('sender')
+        .order_by('-timestamp')[:60]
+    )
+    members = list(workspace.project.members.select_related('user').all())
+
+    done       = [t for t in tasks if t.status == 'done']
+    in_progress = [t for t in tasks if t.status == 'in_progress']
+    todo       = [t for t in tasks if t.status == 'todo']
+    overdue    = [
+        t for t in tasks
+        if t.status in ('todo', 'in_progress') and t.due_date and t.due_date < now
+    ]
+    stalled    = [
+        t for t in in_progress
+        if (now - t.updated_at).days >= 3
+    ]
+
+    upcoming_milestones = [
+        m for m in milestones
+        if not m.completed and m.due_date and m.due_date >= now
+    ]
+    overdue_milestones = [
+        m for m in milestones
+        if not m.completed and m.due_date and m.due_date < now
+    ]
+
+    return {
+        'project_title': workspace.project.title,
+        'members': [{'name': m.user.name, 'role': m.role, 'id': m.user.id} for m in members],
+        'tasks': {
+            'done': [{'title': t.title, 'assigned_to': t.assigned_to.name if t.assigned_to else None} for t in done],
+            'in_progress': [{'title': t.title, 'assigned_to': t.assigned_to.name if t.assigned_to else None} for t in in_progress],
+            'todo': [{'title': t.title, 'assigned_to': t.assigned_to.name if t.assigned_to else None} for t in todo],
+            'overdue': [{'title': t.title, 'assigned_to': t.assigned_to.name if t.assigned_to else None, 'due_date': str(t.due_date.date())} for t in overdue],
+            'stalled': [{'title': t.title, 'assigned_to': t.assigned_to.name if t.assigned_to else None} for t in stalled],
+        },
+        'milestones': {
+            'upcoming': [{'title': m.title, 'due': str(m.due_date.date())} for m in upcoming_milestones],
+            'overdue': [{'title': m.title, 'due': str(m.due_date.date())} for m in overdue_milestones],
+        },
+        'recent_messages': [
+            {'sender': msg.sender.name, 'text': msg.message[:200]} for msg in recent_messages[:20]
+        ],
+    }
+
+
+def _heuristic_pm_report(ctx):
+    """Build a structured PM standup without LLM."""
+    blockers = []
+    if ctx['tasks']['overdue']:
+        for t in ctx['tasks']['overdue']:
+            owner = t['assigned_to'] or 'unassigned'
+            blockers.append(f"Overdue: \"{t['title']}\" (owner: {owner}, due: {t['due_date']})")
+    if ctx['tasks']['stalled']:
+        for t in ctx['tasks']['stalled']:
+            owner = t['assigned_to'] or 'unassigned'
+            blockers.append(f"Stalled >3 days: \"{t['title']}\" (owner: {owner})")
+    if ctx['milestones']['overdue']:
+        for m in ctx['milestones']['overdue']:
+            blockers.append(f"Milestone overdue: \"{m['title']}\" (was due {m['due']})")
+
+    next_actions = []
+    for t in ctx['tasks']['todo'][:3]:
+        owner = t['assigned_to'] or 'unassigned'
+        next_actions.append(f"Start: \"{t['title']}\" — owner: {owner}")
+    if ctx['tasks']['stalled']:
+        next_actions.append("Review stalled in-progress tasks and reassign if needed")
+    if len(ctx['tasks']['in_progress']) > 4:
+        next_actions.append("Too many items in progress — consider limiting WIP to 3")
+
+    accomplishments = [f"\"{t['title']}\"" for t in ctx['tasks']['done'][:5]]
+
+    member_names = ", ".join(m['name'] for m in ctx['members']) or "No members yet"
+    chat_count = len(ctx['recent_messages'])
+
+    summary = (
+        f"Team ({member_names}) has {len(ctx['tasks']['done'])} done, "
+        f"{len(ctx['tasks']['in_progress'])} in progress, "
+        f"{len(ctx['tasks']['todo'])} to-do tasks. "
+        f"{len(blockers)} blocker(s) detected. "
+        f"{chat_count} messages in the last 48 h."
+    )
+
+    return {
+        'project': ctx['project_title'],
+        'summary': summary,
+        'accomplishments': accomplishments,
+        'in_progress': [
+            f"\"{t['title']}\" — {t['assigned_to'] or 'unassigned'}"
+            for t in ctx['tasks']['in_progress'][:5]
+        ],
+        'blockers': blockers,
+        'next_actions': next_actions,
+        'upcoming_milestones': [f"\"{m['title']}\" due {m['due']}" for m in ctx['milestones']['upcoming'][:3]],
+        'suggested_focus': (
+            blockers[0] if blockers else
+            (next_actions[0] if next_actions else "All clear — great momentum!")
+        ),
+        'source': 'heuristic',
+    }
+
+
+def generate_workspace_pm_report(workspace):
+    """
+    Generate an AI PM standup report for a workspace.
+    Uses LLM when OPENAI_API_KEY is set, deterministic fallback otherwise.
+    """
+    ctx = _build_workspace_context(workspace)
+
+    api_key = os.getenv("OPENAI_API_KEY", "").strip()
+    if not api_key:
+        return _heuristic_pm_report(ctx)
+
+    try:
+        from openai import OpenAI
+
+        client = OpenAI(api_key=api_key)
+
+        ctx_json = json.dumps(ctx, default=str, indent=2)
+        prompt = f"""
+You are an expert AI project manager assistant.
+Given the following workspace context for the project "{ctx['project_title']}",
+generate a daily standup report as a JSON object.
+
+Context:
+{ctx_json}
+
+Return ONLY valid JSON with this schema:
+{{
+  "project": string,
+  "summary": string,
+  "accomplishments": string[],
+  "in_progress": string[],
+  "blockers": string[],
+  "next_actions": string[],
+  "upcoming_milestones": string[],
+  "suggested_focus": string,
+  "source": "llm"
+}}
+
+Be concrete, concise, and name owners where available.
+""".strip()
+
+        response = client.responses.create(
+            model="gpt-4.1-mini",
+            input=prompt,
+            temperature=0.2,
+            max_output_tokens=1200,
+        )
+
+        raw = (response.output_text or "").strip()
+        parsed = json.loads(raw)
+        parsed["source"] = "llm"
+        return parsed
+    except Exception:
+        return _heuristic_pm_report(ctx)
 
 
 

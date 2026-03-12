@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}AI PM Report · {{ project.title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <p class="text-muted text-uppercase small mb-1">AI Project Manager</p>
+        <h2 class="mb-0">{{ project.title }}</h2>
+        <p class="text-muted small mb-0">Source: {{ report.source }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'workspace_dashboard' project.id %}" class="btn btn-outline-secondary">
+            <i class="fa-solid fa-arrow-left me-1"></i>Dashboard
+        </a>
+        <a href="{% url 'workspace_ai_pm' project.id %}" class="btn btn-outline-success">
+            <i class="fa-solid fa-rotate me-1"></i>Refresh
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left column: summary + focus -->
+    <div class="col-xl-5">
+        <div class="workspace-card mb-4">
+            <h5 class="mb-2"><i class="fa-solid fa-newspaper me-2 text-primary"></i>Today's standup summary</h5>
+            <p class="mb-0 text-secondary">{{ report.summary }}</p>
+        </div>
+
+        <div class="workspace-card mb-4">
+            <h5 class="mb-2"><i class="fa-solid fa-bullseye me-2 text-success"></i>Suggested focus</h5>
+            <p class="mb-0 fw-medium">{{ report.suggested_focus }}</p>
+        </div>
+
+        {% if report.upcoming_milestones %}
+        <div class="workspace-card">
+            <h6 class="text-uppercase text-muted small mb-2">Upcoming milestones</h6>
+            <ul class="mb-0 small">
+                {% for m in report.upcoming_milestones %}
+                    <li>{{ m }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Right column: detail lists -->
+    <div class="col-xl-7">
+        <div class="row g-3">
+            {% if report.accomplishments %}
+            <div class="col-12">
+                <div class="workspace-card">
+                    <h6 class="text-uppercase text-muted small mb-2">
+                        <i class="fa-solid fa-circle-check text-success me-1"></i>Done
+                    </h6>
+                    <ul class="mb-0 small">
+                        {% for item in report.accomplishments %}
+                            <li>{{ item }}</li>
+                        {% empty %}
+                            <li class="text-muted">Nothing completed yet.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if report.in_progress %}
+            <div class="col-12">
+                <div class="workspace-card">
+                    <h6 class="text-uppercase text-muted small mb-2">
+                        <i class="fa-solid fa-spinner text-warning me-1"></i>In progress
+                    </h6>
+                    <ul class="mb-0 small">
+                        {% for item in report.in_progress %}
+                            <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if report.blockers %}
+            <div class="col-12">
+                <div class="workspace-card border-danger">
+                    <h6 class="text-uppercase small mb-2 text-danger">
+                        <i class="fa-solid fa-triangle-exclamation me-1"></i>Blockers
+                    </h6>
+                    <ul class="mb-0 small text-danger">
+                        {% for b in report.blockers %}
+                            <li>{{ b }}</li>
+                        {% empty %}
+                            <li class="text-muted">No blockers detected.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if report.next_actions %}
+            <div class="col-12">
+                <div class="workspace-card">
+                    <h6 class="text-uppercase text-muted small mb-2">
+                        <i class="fa-solid fa-forward-step text-primary me-1"></i>Suggested next actions
+                    </h6>
+                    <ol class="mb-0 small">
+                        {% for action in report.next_actions %}
+                            <li>{{ action }}</li>
+                        {% endfor %}
+                    </ol>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

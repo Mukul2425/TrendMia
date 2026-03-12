@@ -63,6 +63,7 @@ urlpatterns = [
     # AI Features
     path('ai/starter-kit/', views.ai_project_starter, name='ai_project_starter'),
     path('ai/project-copilot/', views.ai_project_copilot, name='ai_project_copilot'),
+    path('workspace/<int:project_id>/ai-pm/', views.workspace_ai_pm, name='workspace_ai_pm'),
     
     # Trending
     path('trending/', views.trending, name='trending'),
