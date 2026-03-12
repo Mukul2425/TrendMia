@@ -32,7 +32,7 @@ from .forms import (
 )
 from .ai_utils import (
     find_collaborator_matches, get_ai_project_recommendations,
-    generate_project_starter_kit, suggest_next_steps
+    generate_project_starter_kit, suggest_next_steps, generate_project_copilot_brief
 )
 from django.db.models import Q, Count
 from django.core.paginator import Paginator  
@@ -1260,4 +1260,33 @@ def ai_project_starter(request):
     
     domains = Domain.objects.all()
     return render(request, 'ai/starter_kit.html', {'domains': domains})
+
+
+@login_required
+def ai_project_copilot(request):
+    """LLM-backed project copilot for refining rough ideas into structured briefs."""
+    if request.method == 'POST':
+        idea = request.POST.get('idea', '').strip()
+        domain = request.POST.get('domain', '').strip()
+        constraints = request.POST.get('constraints', '').strip()
+        skills_raw = request.POST.get('skills_required', '')
+        skills_required = [s.strip() for s in skills_raw.split(',') if s.strip()]
+
+        if not idea:
+            return JsonResponse({'success': False, 'error': 'Idea is required.'}, status=400)
+
+        brief = generate_project_copilot_brief(
+            idea=idea,
+            domain=domain,
+            skills_required=skills_required,
+            constraints=constraints,
+        )
+
+        return JsonResponse({
+            'success': True,
+            'brief': brief,
+        })
+
+    domains = Domain.objects.all()
+    return render(request, 'ai/project_copilot.html', {'domains': domains})
 

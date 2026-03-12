@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}AI Project Copilot{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="form-panel">
+            <h5 class="mb-3">Project Copilot</h5>
+            <p class="text-muted small mb-3">Turn a rough idea into a structured project brief.</p>
+            <form id="project-copilot-form">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label text-muted small">Idea</label>
+                    <textarea class="form-control" name="idea" rows="5" placeholder="Describe the problem, target users, and your goal."></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted small">Domain</label>
+                    <select class="form-select" name="domain">
+                        <option value="">Select domain</option>
+                        {% for domain in domains %}
+                            <option value="{{ domain.name }}">{{ domain.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted small">Skills / tools (optional)</label>
+                    <input type="text" class="form-control" name="skills_required" placeholder="Python, React, NLP, Figma">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted small">Constraints (optional)</label>
+                    <textarea class="form-control" name="constraints" rows="3" placeholder="Budget, timeline, team size, hardware limits..."></textarea>
+                </div>
+                <button class="btn btn-primary w-100" type="submit">Generate Brief</button>
+            </form>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="workspace-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">Generated Brief</h5>
+                <span id="copilot-status" class="text-muted small">Waiting for input...</span>
+            </div>
+            <div id="copilot-content">
+                <p class="text-muted mb-0">Submit your idea to generate title, solution, milestones, risks, and collaboration asks.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+    const form = document.getElementById('project-copilot-form');
+    const statusNode = document.getElementById('copilot-status');
+    const contentNode = document.getElementById('copilot-content');
+
+    function esc(value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
+    function listItems(items, formatter) {
+        if (!Array.isArray(items) || !items.length) {
+            return '<p class="text-muted">None</p>';
+        }
+        return '<ul>' + items.map(formatter).join('') + '</ul>';
+    }
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        statusNode.textContent = 'Generating...';
+
+        const csrfInput = form.querySelector('input[name="csrfmiddlewaretoken"]');
+        const csrfToken = csrfInput ? csrfInput.value : '';
+        const payload = new URLSearchParams(new FormData(form));
+
+        fetch('', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+            },
+            body: payload.toString()
+        })
+        .then(async (response) => {
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || 'Request failed');
+            }
+            return data;
+        })
+        .then((data) => {
+            const b = data.brief || {};
+            const milestones = listItems(b.milestones, (m) =>
+                '<li><strong>' + esc(m.title) + '</strong> - ' + esc(m.description) +
+                (m.duration_weeks ? ' (' + esc(m.duration_weeks) + ' weeks)' : '') + '</li>'
+            );
+            const risks = listItems(b.risks, (r) =>
+                '<li><strong>' + esc(r.risk) + '</strong> [' + esc(r.severity) + '] - ' + esc(r.mitigation) + '</li>'
+            );
+            const criteria = listItems(b.acceptance_criteria, (c) => '<li>' + esc(c) + '</li>');
+            const stack = Array.isArray(b.recommended_stack) && b.recommended_stack.length
+                ? esc(b.recommended_stack.join(', '))
+                : '<span class="text-muted">Not provided</span>';
+            const roles = b.collaboration_ask && Array.isArray(b.collaboration_ask.roles) && b.collaboration_ask.roles.length
+                ? esc(b.collaboration_ask.roles.join(', '))
+                : 'Not specified';
+
+            let html = '';
+            html += '<h6>' + esc(b.title || 'Untitled') + '</h6>';
+            html += '<p class="text-muted">Source: ' + esc(b.source || 'unknown') + '</p>';
+            html += '<p><strong>One-liner:</strong> ' + esc(b.one_liner) + '</p>';
+            html += '<p><strong>Problem:</strong> ' + esc(b.problem_statement) + '</p>';
+            html += '<p><strong>Solution:</strong> ' + esc(b.proposed_solution) + '</p>';
+            html += '<p><strong>Skills required:</strong> ' + esc((b.skills_required || []).join(', ')) + '</p>';
+            html += '<p><strong>Recommended stack:</strong> ' + stack + '</p>';
+            html += '<h6>Milestones</h6>' + milestones;
+            html += '<h6>Risks and mitigation</h6>' + risks;
+            html += '<h6>Acceptance criteria</h6>' + criteria;
+            html += '<h6>Collaboration ask</h6>';
+            html += '<p><strong>Summary:</strong> ' + esc((b.collaboration_ask || {}).summary || '') + '</p>';
+            html += '<p><strong>Suggested roles:</strong> ' + roles + '</p>';
+            html += '<p><strong>Constraints:</strong> ' + esc(b.constraints || '') + '</p>';
+
+            contentNode.innerHTML = html;
+            statusNode.textContent = 'Ready';
+        })
+        .catch((error) => {
+            statusNode.textContent = 'Error';
+            contentNode.innerHTML = '<p class="text-danger mb-0">' + esc(error.message || 'Failed to generate brief') + '</p>';
+        });
+    });
+})();
+</script>
+{% endblock %}

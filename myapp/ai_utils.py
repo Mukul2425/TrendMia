@@ -8,8 +8,9 @@ AI utility functions for TRENDMIA
 """
 
 from .models import Project, CustomUser, CollaborationRequest, ProjectMember, Domain, Tag
-from django.db.models import Q
+from django.db.models import Q, Count
 from collections import Counter
+import os
 import json
 
 
@@ -54,6 +55,59 @@ def get_user_skills_list(user):
     return []
 
 
+def _normalize_text(value):
+    return (value or "").strip().lower()
+
+
+def _tokenize_text(value):
+    cleaned = _normalize_text(value)
+    if not cleaned:
+        return set()
+    tokens = [t for t in cleaned.replace(',', ' ').replace('.', ' ').split() if len(t) > 2]
+    return set(tokens)
+
+
+def _token_jaccard_similarity(text_a, text_b):
+    tokens_a = _tokenize_text(text_a)
+    tokens_b = _tokenize_text(text_b)
+    if not tokens_a or not tokens_b:
+        return 0.0
+    intersection = len(tokens_a & tokens_b)
+    union = len(tokens_a | tokens_b)
+    if union == 0:
+        return 0.0
+    return intersection / union
+
+
+def _cosine_similarity(vec_a, vec_b):
+    if not vec_a or not vec_b or len(vec_a) != len(vec_b):
+        return 0.0
+    dot = sum(a * b for a, b in zip(vec_a, vec_b))
+    norm_a = sum(a * a for a in vec_a) ** 0.5
+    norm_b = sum(b * b for b in vec_b) ** 0.5
+    if norm_a == 0 or norm_b == 0:
+        return 0.0
+    return dot / (norm_a * norm_b)
+
+
+def _get_embedding(text):
+    """Best-effort embedding fetch; returns None when unavailable."""
+    api_key = os.getenv("OPENAI_API_KEY", "").strip()
+    if not api_key or not text:
+        return None
+    try:
+        from openai import OpenAI
+
+        client = OpenAI(api_key=api_key)
+        result = client.embeddings.create(
+            model="text-embedding-3-small",
+            input=text,
+        )
+        return result.data[0].embedding
+    except Exception:
+        return None
+
+
 def find_collaborator_matches(project, limit=10):
     """
     Find best matching collaborators for a project based on:
@@ -65,41 +119,86 @@ def find_collaborator_matches(project, limit=10):
     required_skills = project.skills_required if isinstance(project.skills_required, list) else []
     if not required_skills:
         return []
-    
+
+    project_text = " ".join([
+        project.title or "",
+        project.description or "",
+        project.problem_statement or "",
+        " ".join(required_skills),
+        project.domain.name if project.domain else "",
+    ]).strip()
+
+    project_embedding = _get_embedding(project_text)
+
     # Get all users except project owner
     all_users = CustomUser.objects.exclude(id=project.user.id)
+
+    # Historical collaboration reliability for each requester
+    requester_stats = {
+        row['requester_id']: row
+        for row in CollaborationRequest.objects.values('requester_id').annotate(
+            total=Count('id'),
+            accepted=Count('id', filter=Q(status='accepted')),
+        )
+    }
     
     # Score each user
     scored_users = []
     for user in all_users:
         score = 0.0
         reasons = []
-        
-        # Skill matching (weight: 0.5)
+
+        # Skill matching (weight: 0.35)
         user_skills = get_user_skills_list(user)
         skill_match = calculate_skill_similarity(user_skills, required_skills)
-        score += skill_match * 0.5
+        score += skill_match * 0.35
         if skill_match > 0.3:
             reasons.append(f"Matches {int(skill_match * 100)}% of required skills")
-        
-        # Location matching (weight: 0.2)
+
+        # Semantic profile-project matching (weight: 0.25)
+        user_text = " ".join([
+            user.bio or "",
+            user.location or "",
+            " ".join(user_skills),
+            " ".join(Project.objects.filter(user=user).values_list('title', flat=True)[:10]),
+            " ".join(Project.objects.filter(user=user).values_list('description', flat=True)[:10]),
+        ]).strip()
+
+        semantic_score = _token_jaccard_similarity(project_text, user_text)
+        if project_embedding:
+            user_embedding = _get_embedding(user_text)
+            if user_embedding:
+                semantic_score = max(semantic_score, _cosine_similarity(project_embedding, user_embedding))
+        score += semantic_score * 0.25
+        if semantic_score > 0.2:
+            reasons.append("Strong semantic match with project context")
+
+        # Location matching (weight: 0.15)
         if project.location and user.location:
             if project.location.lower() in user.location.lower() or user.location.lower() in project.location.lower():
-                score += 0.2
+                score += 0.15
                 reasons.append("Same location")
-        
-        # Domain interest matching (weight: 0.2)
+
+        # Domain interest matching (weight: 0.15)
         if project.domain:
             user_projects = Project.objects.filter(user=user)
             user_domains = [p.domain for p in user_projects if p.domain]
             if project.domain in user_domains:
-                score += 0.2
+                score += 0.15
                 reasons.append(f"Experience in {project.domain.name}")
-        
-        # Activity score (weight: 0.1)
+
+        # Collaboration reliability (weight: 0.05)
+        stat = requester_stats.get(user.id)
+        if stat and stat.get('total'):
+            acceptance_rate = (stat.get('accepted', 0) / stat['total'])
+            score += acceptance_rate * 0.05
+            if acceptance_rate >= 0.5:
+                reasons.append("Historically high acceptance in collaborations")
+
+        # Activity score (weight: 0.05)
         activity_score = min(user.contribution_streak / 30, 1.0)  # Normalize to 0-1
-        score += activity_score * 0.1
-        
+        score += activity_score * 0.05
+
         if score > 0.2:  # Only include users with meaningful match
             scored_users.append({
                 'user': user,
@@ -281,6 +380,141 @@ def suggest_next_steps(workspace):
         })
     
     return suggestions
+
+
+def _heuristic_copilot_output(idea, domain, skills_required, constraints):
+    """Deterministic fallback when no LLM key is configured."""
+    skills = [s.strip() for s in skills_required if s and s.strip()]
+    constraints_text = constraints.strip() if constraints else "No explicit constraints provided"
+
+    domain_label = domain or "General"
+    title = f"{domain_label} Project: {idea[:60].strip()}" if idea else f"{domain_label} Project"
+    title = title[:140]
+
+    milestones = [
+        {
+            "title": "Problem framing and success criteria",
+            "description": "Define the target user, key pain point, and measurable success metrics.",
+            "duration_weeks": 1,
+        },
+        {
+            "title": "MVP architecture and implementation",
+            "description": "Build a minimal version that validates the core hypothesis with real usage.",
+            "duration_weeks": 3,
+        },
+        {
+            "title": "Validation and iteration",
+            "description": "Collect feedback, benchmark outcomes, and iterate on weak areas.",
+            "duration_weeks": 2,
+        },
+    ]
+
+    risks = [
+        {
+            "risk": "Scope expansion",
+            "severity": "medium",
+            "mitigation": "Freeze MVP scope and prioritize by user impact.",
+        },
+        {
+            "risk": "Insufficient user validation",
+            "severity": "high",
+            "mitigation": "Run regular user interviews and instrument usage analytics.",
+        },
+        {
+            "risk": "Team execution bottlenecks",
+            "severity": "medium",
+            "mitigation": "Assign clear ownership and weekly delivery checkpoints.",
+        },
+    ]
+
+    collaboration_ask = {
+        "summary": "Looking for contributors who can ship quickly and validate with users.",
+        "roles": ["Developer", "Designer", "Domain Specialist"],
+    }
+
+    return {
+        "title": title,
+        "one_liner": f"Build a focused {domain_label.lower()} solution that solves: {idea[:180].strip()}" if idea else "Build a focused solution with clear user value.",
+        "problem_statement": idea.strip() if idea else "Problem statement not provided.",
+        "proposed_solution": "Develop an MVP with clear user journey, telemetry, and feedback loops to iterate fast.",
+        "skills_required": skills,
+        "recommended_stack": [
+            "Django",
+            "PostgreSQL",
+            "REST API",
+            "Bootstrap/Frontend framework",
+        ],
+        "milestones": milestones,
+        "risks": risks,
+        "acceptance_criteria": [
+            "Users can complete the primary workflow end-to-end.",
+            "At least one measurable outcome improves versus baseline.",
+            "Core reliability and performance checks pass.",
+        ],
+        "collaboration_ask": collaboration_ask,
+        "constraints": constraints_text,
+        "source": "heuristic",
+    }
+
+
+def generate_project_copilot_brief(idea, domain="", skills_required=None, constraints=""):
+    """
+    Generate a structured project brief from a rough idea.
+    Uses an LLM when OPENAI_API_KEY is available, otherwise deterministic fallback.
+    """
+    skills_required = skills_required or []
+    cleaned_skills = [s.strip() for s in skills_required if s and s.strip()]
+
+    api_key = os.getenv("OPENAI_API_KEY", "").strip()
+    if not api_key:
+        return _heuristic_copilot_output(idea, domain, cleaned_skills, constraints)
+
+    try:
+        from openai import OpenAI
+
+        client = OpenAI(api_key=api_key)
+        prompt = f"""
+You are an expert startup and product advisor.
+Convert the following rough project idea into a structured JSON object.
+
+Input:
+- Idea: {idea}
+- Domain: {domain}
+- Skills provided by user: {cleaned_skills}
+- Constraints: {constraints}
+
+Return ONLY valid JSON with this exact top-level schema:
+{{
+  "title": string,
+  "one_liner": string,
+  "problem_statement": string,
+  "proposed_solution": string,
+  "skills_required": string[],
+  "recommended_stack": string[],
+  "milestones": [{{"title": string, "description": string, "duration_weeks": number}}],
+  "risks": [{{"risk": string, "severity": "low"|"medium"|"high", "mitigation": string}}],
+  "acceptance_criteria": string[],
+  "collaboration_ask": {{"summary": string, "roles": string[]}},
+  "constraints": string
+}}
+
+Keep output concise, practical, and implementation-oriented.
+""".strip()
+
+        response = client.responses.create(
+            model="gpt-4.1-mini",
+            input=prompt,
+            temperature=0.2,
+            max_output_tokens=1800,
+        )
+
+        raw = (response.output_text or "").strip()
+        parsed = json.loads(raw)
+        parsed["source"] = "llm"
+        return parsed
+    except Exception:
+        # Fail safely to deterministic output if LLM call/parsing fails.
+        return _heuristic_copilot_output(idea, domain, cleaned_skills, constraints)
 
 
 
